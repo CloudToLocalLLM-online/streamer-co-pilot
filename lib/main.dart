@@ -851,11 +851,12 @@ class _SettingsTabState extends State<SettingsTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    '1. Get credentials from your streaming platform (dev.twitch.tv)',
+                    'Set PLATFORM in .env (twitch, youtube, kick).\n'
+                    'Get credentials from your platform\'s dev portal.',
                     style: TextStyle(fontSize: 13),
                   ),
                   const SizedBox(height: 4),
-                  const Text('2. Run the plugin:', style: TextStyle(fontSize: 13)),
+                  const Text('2. Run the service:', style: TextStyle(fontSize: 13)),
                   const SizedBox(height: 8),
                   Container(
                     width: double.infinity,
@@ -865,6 +866,7 @@ class _SettingsTabState extends State<SettingsTab> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
+                      '# Set PLATFORM=twitch in .env\n'
                       'TWITCH_CLIENT_ID=xxx \\\n'
                       'TWITCH_CLIENT_SECRET=*** \\\n'
                       'BOT_ID=123456 \\\n'
