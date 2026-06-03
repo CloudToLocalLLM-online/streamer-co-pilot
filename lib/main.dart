@@ -5,6 +5,40 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
+// ── SSE event stream client ──────────────────────────────────────────
+
+class SseClient {
+  final String url;
+  http.Client? _client;
+
+  SseClient(this.url);
+
+  Stream<String> connect() async* {
+    _client = http.Client();
+    final request = http.Request('GET', Uri.parse('$url/events/stream'));
+    final response = await _client!.send(request);
+
+    final lines = response.stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter());
+
+    String currentEvent = '';
+    await for (final line in lines) {
+      if (line.startsWith('event: ')) {
+        currentEvent = line.substring(7).trim();
+      } else if (line.startsWith('data: ')) {
+        yield currentEvent.isEmpty ? line.substring(6) : '$currentEvent\x00${line.substring(6)}';
+        currentEvent = '';
+      }
+    }
+  }
+
+  void disconnect() {
+    _client?.close();
+    _client = null;
+  }
+}
+
 // ── Provider ───────────────────────────────────────────────────────────
 
 class StreamerBotProvider extends ChangeNotifier {
@@ -24,7 +58,10 @@ class StreamerBotProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get chat => _chat;
   bool _connected = false;
   bool get connected => _connected;
-  Timer? _pollTimer;
+
+  SseClient? _sse;
+  StreamSubscription<String>? _sseSub;
+  Timer? _reconnectTimer;
 
   void setBotUrl(String url) {
     _botUrl = url;
@@ -44,6 +81,75 @@ class StreamerBotProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  /// Connect via SSE stream. Returns true if health check passes first.
+  Future<bool> connectSse() async {
+    final ok = await checkHealth();
+    if (!ok) return false;
+
+    _sse?.disconnect();
+    await _sseSub?.cancel();
+
+    _sse = SseClient(_botUrl);
+    try {
+      _sseSub = _sse!.connect().listen(_handleSseEvent,
+          onError: (_) => _scheduleReconnect(),
+          onDone: () => _scheduleReconnect());
+    } catch (_) {
+      _scheduleReconnect();
+      return false;
+    }
+
+    // Also fetch initial state
+    fetchStatus();
+    fetchChat();
+    _connected = true;
+    notifyListeners();
+    return true;
+  }
+
+  void _handleSseEvent(String raw) {
+    // Check for event type prefix (event\x00data format)
+    final parts = raw.split('\x00');
+    if (parts.length == 2 && parts[0] == 'status') {
+      try {
+        final data = jsonDecode(parts[1]);
+        _streamStatus = data['status'] ?? _streamStatus;
+        _title = data['title'] ?? _title;
+        _game = data['game'] ?? _game;
+        _viewers = data['viewers'] ?? _viewers;
+        notifyListeners();
+      } catch (_) {}
+    } else {
+      // Regular chat message
+      try {
+        final msg = jsonDecode(raw);
+        _chat.insert(0, Map<String, dynamic>.from(msg));
+        if (_chat.length > 500) _chat = _chat.sublist(0, 200);
+        notifyListeners();
+      } catch (_) {}
+    }
+  }
+
+  void _scheduleReconnect() {
+    _connected = false;
+    notifyListeners();
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 5), () {
+      connectSse();
+    });
+  }
+
+  void disconnect() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _sseSub?.cancel();
+    _sseSub = null;
+    _sse?.disconnect();
+    _sse = null;
+    _connected = false;
+    notifyListeners();
   }
 
   Future<void> fetchStatus() async {
@@ -88,22 +194,9 @@ class StreamerBotProvider extends ChangeNotifier {
     }
   }
 
-  void startPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      fetchStatus();
-      fetchChat();
-    });
-  }
-
-  void stopPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = null;
-  }
-
   @override
   void dispose() {
-    stopPolling();
+    disconnect();
     super.dispose();
   }
 }
@@ -194,13 +287,7 @@ class _MainScreenState extends State<MainScreen>
     // Auto-connect on launch
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<StreamerBotProvider>();
-      provider.checkHealth().then((ok) {
-        if (ok) {
-          provider.startPolling();
-          provider.fetchStatus();
-          provider.fetchChat();
-        }
-      });
+      provider.connectSse();
     });
   }
 
@@ -299,11 +386,11 @@ class DashboardTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<StreamerBotProvider>(
       builder: (_, provider, _) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+        return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -369,7 +456,7 @@ class DashboardTab extends StatelessWidget {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => provider.checkHealth(),
+                      onPressed: () => provider.connectSse(),
                       icon: const Icon(Icons.refresh),
                       label: const Text('Reconnect'),
                       style: ElevatedButton.styleFrom(
@@ -463,9 +550,7 @@ class DashboardTab extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
-          ),
-        );
+            ]));
       },
     );
   }
@@ -677,11 +762,8 @@ class _SettingsTabState extends State<SettingsTab> {
             child: ElevatedButton.icon(
               onPressed: () async {
                 final provider = context.read<StreamerBotProvider>();
-                final ok = await provider.checkHealth();
+                final ok = await provider.connectSse();
                 if (ok) {
-                  provider.startPolling();
-                  provider.fetchStatus();
-                  provider.fetchChat();
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
