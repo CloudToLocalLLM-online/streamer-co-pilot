@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -62,6 +63,7 @@ class StreamerBotProvider extends ChangeNotifier {
   SseClient? _sse;
   StreamSubscription<String>? _sseSub;
   Timer? _reconnectTimer;
+  Process? _serviceProcess;
 
   void setBotUrl(String url) {
     _botUrl = url;
@@ -83,9 +85,54 @@ class StreamerBotProvider extends ChangeNotifier {
     }
   }
 
-  /// Connect via SSE stream. Returns true if health check passes first.
+  /// Try to launch the backend service locally.
+  Future<bool> _launchService() async {
+    // Try known locations
+    final possible = [
+      '/home/rightguy/streamer-co-pilot-service/.venv/bin/python3',
+      '/opt/cloudtolocalllm/streamer-co-pilot-service/.venv/bin/python3',
+    ];
+
+    for (final pythonBin in possible) {
+      if (await File(pythonBin).exists()) {
+        final serviceDir = '${Directory(pythonBin).parent.parent.path}/services/bot-service';
+        if (await Directory(serviceDir).exists()) {
+          try {
+            _serviceProcess = await Process.start(
+              pythonBin,
+              ['api.py'],
+              workingDirectory: serviceDir,
+              environment: {
+                'TWITCH_BOT_PORT': '8510',
+              },
+            );
+            // Don't wait for it, let it spin up
+            _serviceProcess?.stderr
+                .transform(utf8.decoder)
+                .transform(const LineSplitter())
+                .listen((line) => debugPrint('[bot] $line'));
+            return true;
+          } catch (_) {
+            return false;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /// Connect via SSE stream. Tries to launch the backend if not running.
   Future<bool> connectSse() async {
-    final ok = await checkHealth();
+    // Health check — try twice with auto-launch between
+    var ok = await checkHealth();
+    if (!ok) {
+      ok = await _launchService();
+      if (ok) {
+        // Wait for service to boot
+        await Future.delayed(const Duration(seconds: 3));
+        ok = await checkHealth();
+      }
+    }
     if (!ok) return false;
 
     _sse?.disconnect();
@@ -196,6 +243,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _serviceProcess?.kill();
     disconnect();
     super.dispose();
   }
