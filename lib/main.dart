@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 // ── SSE event stream client ──────────────────────────────────────────
@@ -17,7 +18,9 @@ class SseClient {
   Stream<String> connect() async* {
     _client = http.Client();
     final request = http.Request('GET', Uri.parse('$url/events/stream'));
-    final response = await _client!.send(request);
+    final response = await _client!.send(request).timeout(
+          const Duration(seconds: 10),
+        );
 
     final lines = response.stream
         .transform(utf8.decoder)
@@ -45,6 +48,39 @@ class SseClient {
 class StreamerBotProvider extends ChangeNotifier {
   String _botUrl = 'http://localhost:8510';
   String get botUrl => _botUrl;
+  SharedPreferences? _prefs;
+  bool _prefsReady = false;
+  String? _pendingUrl; // buffered write if setBotUrl called before prefs ready
+
+  StreamerBotProvider() {
+    _initPrefs();
+  }
+
+  Future<void> _initPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+    _prefsReady = true;
+    final saved = _prefs!.getString('botUrl');
+    if (saved != null && saved.isNotEmpty) {
+      _botUrl = saved;
+      notifyListeners();
+    }
+    // Flush any buffered write from setBotUrl called before prefs were ready
+    if (_pendingUrl != null) {
+      _prefs!.setString('botUrl', _pendingUrl!);
+      _pendingUrl = null;
+    }
+  }
+
+  void setBotUrl(String url) {
+    _botUrl = url;
+    if (_prefsReady && _prefs != null) {
+      _prefs!.setString('botUrl', url);
+    } else {
+      // Buffer the write — prefs still loading
+      _pendingUrl = url;
+    }
+    notifyListeners();
+  }
 
   String _streamStatus = 'unknown';
   String get streamStatus => _streamStatus;
@@ -54,6 +90,21 @@ class StreamerBotProvider extends ChangeNotifier {
   String get game => _game;
   String _title = '';
   String get title => _title;
+
+  String? _lastError;
+  String? get lastError => _lastError;
+
+  void _setError(String context, dynamic error) {
+    final msg = '[$context] $error';
+    debugPrint('[provider] ERROR: $msg');
+    _lastError = msg;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _lastError = null;
+    notifyListeners();
+  }
 
   List<Map<String, dynamic>> _chat = [];
   List<Map<String, dynamic>> get chat => _chat;
@@ -65,11 +116,6 @@ class StreamerBotProvider extends ChangeNotifier {
   Timer? _reconnectTimer;
   Process? _serviceProcess;
 
-  void setBotUrl(String url) {
-    _botUrl = url;
-    notifyListeners();
-  }
-
   Future<bool> checkHealth() async {
     try {
       final res = await http
@@ -78,7 +124,8 @@ class StreamerBotProvider extends ChangeNotifier {
       _connected = res.statusCode == 200;
       notifyListeners();
       return _connected;
-    } catch (_) {
+    } catch (e) {
+      _setError('checkHealth', e);
       _connected = false;
       notifyListeners();
       return false;
@@ -87,38 +134,58 @@ class StreamerBotProvider extends ChangeNotifier {
 
   /// Try to launch the backend service locally.
   Future<bool> _launchService() async {
-    // Try known locations
-    final possible = [
-      '/home/rightguy/streamer-co-pilot-service/.venv/bin/python3',
-      '/opt/cloudtolocalllm/streamer-co-pilot-service/.venv/bin/python3',
-    ];
+    final pythonBin = await _resolvePython();
+    if (pythonBin == null) return false;
+    return _tryLaunch(pythonBin);
+  }
 
-    for (final pythonBin in possible) {
-      if (await File(pythonBin).exists()) {
-        final serviceDir = '${Directory(pythonBin).parent.parent.path}/services/bot-service';
-        if (await Directory(serviceDir).exists()) {
-          try {
-            _serviceProcess = await Process.start(
-              pythonBin,
-              ['api.py'],
-              workingDirectory: serviceDir,
-              environment: {
-                'TWITCH_BOT_PORT': '8510',
-              },
-            );
-            // Don't wait for it, let it spin up
-            _serviceProcess?.stderr
-                .transform(utf8.decoder)
-                .transform(const LineSplitter())
-                .listen((line) => debugPrint('[bot] $line'));
-            return true;
-          } catch (_) {
-            return false;
-          }
-        }
-      }
+  /// Resolve the python binary path: env var → relative to app → common locs.
+  Future<String?> _resolvePython() async {
+    // 1. Explicit override via env var
+    final envPython = Platform.environment['STREAMER_COPILOT_PYTHON'];
+    if (envPython != null && envPython.isNotEmpty && await File(envPython).exists()) {
+      return envPython;
     }
-    return false;
+
+    // 2. Walk up from the running app's location (works in both dev and release)
+    final appPath = Platform.resolvedExecutable;
+    for (var dir = File(appPath).parent; dir.path != '/'; dir = dir.parent) {
+      final candidate = '${dir.path}/streamer-co-pilot-service/.venv/bin/python3';
+      if (await File(candidate).exists()) return candidate;
+    }
+
+    // 3. Fallback: common locations (dev home, system install)
+    final home = Platform.environment['HOME'] ?? '';
+    final fallbacks = [
+      if (home.isNotEmpty) '$home/streamer-co-pilot-service/.venv/bin/python3',
+      '/opt/streamer-co-pilot-service/.venv/bin/python3',
+    ];
+    for (final path in fallbacks) {
+      if (await File(path).exists()) return path;
+    }
+    return null;
+  }
+
+  /// Launch the service given a python binary path.
+  Future<bool> _tryLaunch(String pythonBin) async {
+    final serviceDir = '${Directory(pythonBin).parent.parent.path}/services/bot-service';
+    if (!await Directory(serviceDir).exists()) return false;
+    try {
+      _serviceProcess = await Process.start(
+        pythonBin,
+        ['api.py'],
+        workingDirectory: serviceDir,
+        environment: {'TWITCH_BOT_PORT': '8510'},
+      );
+      _serviceProcess?.stderr
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .listen((line) => debugPrint('[bot] $line'));
+      return true;
+      } catch (e) {
+      _setError('launchService', e);
+      return false;
+    }
   }
 
   /// Connect via SSE stream. Tries to launch the backend if not running.
@@ -143,7 +210,8 @@ class StreamerBotProvider extends ChangeNotifier {
       _sseSub = _sse!.connect().listen(_handleSseEvent,
           onError: (_) => _scheduleReconnect(),
           onDone: () => _scheduleReconnect());
-    } catch (_) {
+    } catch (e) {
+      _setError('connectSse', e);
       _scheduleReconnect();
       return false;
     }
@@ -167,15 +235,19 @@ class StreamerBotProvider extends ChangeNotifier {
         _game = data['game'] ?? _game;
         _viewers = data['viewers'] ?? _viewers;
         notifyListeners();
-      } catch (_) {}
+      } catch (e) {
+        _setError('handleSseEvent/status', e);
+      }
     } else {
       // Regular chat message
       try {
         final msg = jsonDecode(raw);
         _chat.insert(0, Map<String, dynamic>.from(msg));
-        if (_chat.length > 500) _chat = _chat.sublist(0, 200);
+        if (_chat.length > 200) _chat = _chat.sublist(0, 200);
         notifyListeners();
-      } catch (_) {}
+      } catch (e) {
+        _setError('handleSseEvent/chat', e);
+      }
     }
   }
 
@@ -212,7 +284,9 @@ class StreamerBotProvider extends ChangeNotifier {
         _title = data['title'] ?? '';
         notifyListeners();
       }
-    } catch (_) {}
+    } catch (e) {
+      _setError('fetchStatus', e);
+    }
   }
 
   Future<void> fetchChat() async {
@@ -225,7 +299,9 @@ class StreamerBotProvider extends ChangeNotifier {
         _chat = List<Map<String, dynamic>>.from(data['messages'] ?? []);
         notifyListeners();
       }
-    } catch (_) {}
+    } catch (e) {
+      _setError('fetchChat', e);
+    }
   }
 
   Future<bool> sendMessage(String text) async {
@@ -766,12 +842,23 @@ class _SettingsTabState extends State<SettingsTab> {
   @override
   void initState() {
     super.initState();
+    // Set initial text; _initPrefs may not have resolved yet, so listen for updates
     _urlController.text =
         context.read<StreamerBotProvider>().botUrl;
+    context.read<StreamerBotProvider>().addListener(_onProviderChange);
+  }
+
+  void _onProviderChange() {
+    if (_urlController.text !=
+        context.read<StreamerBotProvider>().botUrl) {
+      _urlController.text =
+          context.read<StreamerBotProvider>().botUrl;
+    }
   }
 
   @override
   void dispose() {
+    context.read<StreamerBotProvider>().removeListener(_onProviderChange);
     _urlController.dispose();
     super.dispose();
   }
