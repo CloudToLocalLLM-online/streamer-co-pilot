@@ -252,7 +252,7 @@ class _ConnectionIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<StreamerBotProvider>(
-      builder: (_, provider, __) {
+      builder: (_, provider, _) {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -298,10 +298,10 @@ class DashboardTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<StreamerBotProvider>(
-      builder: (_, provider, __) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+      builder: (_, provider, _) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Card(
@@ -520,7 +520,7 @@ class _ChatTabState extends State<ChatTab> {
         children: [
           Expanded(
             child: Consumer<StreamerBotProvider>(
-              builder: (_, provider, __) {
+              builder: (_, provider, _) {
                 final chat = provider.chat;
                 if (chat.isEmpty) {
                   return const Center(
