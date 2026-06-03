@@ -1,0 +1,20 @@
+# Flutter
+.buildlog/
+*.lock-wtf.txt
+.dart_tool/
+.packages
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+linux/flutter/ephemeral/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
