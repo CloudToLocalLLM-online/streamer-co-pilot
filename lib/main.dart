@@ -12,15 +12,27 @@ import 'package:window_manager/window_manager.dart';
 class SseClient {
   final String url;
   http.Client? _client;
+  Timer? _readTimeoutTimer;
+  Timer? _connectTimeoutTimer;
 
   SseClient(this.url);
+
+  /// How long to wait for the initial HTTP response.
+  static const _connectTimeout = Duration(seconds: 15);
+  /// How long without any data before we consider the stream dead.
+  static const _readTimeout = Duration(seconds: 30);
 
   Stream<String> connect() async* {
     _client = http.Client();
     final request = http.Request('GET', Uri.parse('$url/events/stream'));
-    final response = await _client!.send(request).timeout(
-          const Duration(seconds: 10),
-        );
+
+    final response = await _client!
+        .send(request)
+        .timeout(_connectTimeout, onTimeout: () {
+      _client?.close();
+      _client = null;
+      throw TimeoutException('SSE connect timed out after $_connectTimeout');
+    });
 
     final lines = response.stream
         .transform(utf8.decoder)
@@ -28,21 +40,36 @@ class SseClient {
 
     String currentEvent = '';
     await for (final line in lines) {
+      // Reset read timer on any data
+      _readTimeoutTimer?.cancel();
+      _readTimeoutTimer = Timer(_readTimeout, () {
+        debugPrint('SSE read timeout — no data for $_readTimeout, disconnecting');
+        disconnect();
+      });
+
+      // Skip SSE comment lines (heartbeat: ": heartbeat")
+      if (line.startsWith(':')) continue;
+
       if (line.startsWith('event: ')) {
         currentEvent = line.substring(7).trim();
       } else if (line.startsWith('data: ')) {
-        yield currentEvent.isEmpty ? line.substring(6) : '$currentEvent\x00${line.substring(6)}';
+        yield currentEvent.isEmpty
+            ? line.substring(6)
+            : '$currentEvent\x00${line.substring(6)}';
         currentEvent = '';
       }
     }
   }
 
   void disconnect() {
+    _readTimeoutTimer?.cancel();
+    _readTimeoutTimer = null;
+    _connectTimeoutTimer?.cancel();
+    _connectTimeoutTimer = null;
     _client?.close();
     _client = null;
   }
 }
-
 // ── Provider ───────────────────────────────────────────────────────────
 
 class StreamerBotProvider extends ChangeNotifier {
@@ -93,6 +120,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   String? _lastError;
   String? get lastError => _lastError;
+  Timer? _errorPoller;
 
   void _setError(String context, dynamic error) {
     final msg = '[$context] $error';
@@ -104,6 +132,39 @@ class StreamerBotProvider extends ChangeNotifier {
   void clearError() {
     _lastError = null;
     notifyListeners();
+  }
+
+  /// Poll the backend's /errors endpoint and surface backend-side errors
+  /// in the Flutter UI as local errors.
+  Future<void> fetchBackendErrors() async {
+    final url = '$_botUrl/errors';
+    try {
+      final res = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 3));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final errors = data['errors'] as List<dynamic>?;
+        if (errors != null && errors.isNotEmpty) {
+          for (final err in errors) {
+            if (err is Map && err['context'] != null) {
+              _setError('backend/${err['context']}', err['message'] ?? err['type']);
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // don't cascade error-poller failures into the error banner
+    }
+  }
+
+  void _startErrorPoller() {
+    _errorPoller?.cancel();
+    _errorPoller = Timer.periodic(const Duration(seconds: 30), (_) {
+      fetchBackendErrors();
+    });
+    // also fetch immediately
+    fetchBackendErrors();
   }
 
   List<Map<String, dynamic>> _chat = [];
@@ -208,7 +269,11 @@ class StreamerBotProvider extends ChangeNotifier {
     _sse = SseClient(_botUrl);
     try {
       _sseSub = _sse!.connect().listen(_handleSseEvent,
-          onError: (_) => _scheduleReconnect(),
+          onError: (e) {
+            _setError('sseStream', e);
+            debugPrint('[sse] stream error: $e');
+            _scheduleReconnect();
+          },
           onDone: () => _scheduleReconnect());
     } catch (e) {
       _setError('connectSse', e);
@@ -219,6 +284,7 @@ class StreamerBotProvider extends ChangeNotifier {
     // Also fetch initial state
     fetchStatus();
     fetchChat();
+    _startErrorPoller();
     _connected = true;
     notifyListeners();
     return true;
@@ -261,6 +327,8 @@ class StreamerBotProvider extends ChangeNotifier {
   }
 
   void disconnect() {
+    _errorPoller?.cancel();
+    _errorPoller = null;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
     _sseSub?.cancel();
@@ -312,7 +380,8 @@ class StreamerBotProvider extends ChangeNotifier {
               body: jsonEncode({'message': text}))
           .timeout(const Duration(seconds: 3));
       return res.statusCode == 200;
-    } catch (_) {
+    } catch (e) {
+      _setError('sendMessage', e);
       return false;
     }
   }
@@ -443,13 +512,45 @@ class _MainScreenState extends State<MainScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: const [
-          DashboardTab(),
-          ChatTab(),
-          SettingsTab(),
-        ],
+      body: Consumer<StreamerBotProvider>(
+        builder: (_, provider, _) => Column(
+          children: [
+            if (provider.lastError != null)
+              GestureDetector(
+                onTap: () => provider.clearError(),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  color: Colors.red.shade900.withValues(alpha: 0.85),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber, color: Colors.yellow, size: 14),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          provider.lastError!,
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Icon(Icons.close, color: Colors.white54, size: 14),
+                    ],
+                  ),
+                ),
+              ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: const [
+                  DashboardTab(),
+                  ChatTab(),
+                  SettingsTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
