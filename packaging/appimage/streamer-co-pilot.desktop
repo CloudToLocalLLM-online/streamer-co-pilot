@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Streamer Co-Pilot
+Comment=Stream dashboard, chat viewer, overlay, and bot controls
+Exec=streamer_co_pilot
+Icon=streamer-co-pilot
+Terminal=false
+Type=Application
+Categories=Utility;AudioVideo;Network;
+StartupNotify=true
