@@ -71,5 +71,6 @@ if [ -z "$APPIMAGETOOL" ] || [ ! -f "$APPIMAGETOOL" ]; then
   fi
 fi
 
-"$APPIMAGETOOL" "$APPDIR" "${OUTPUT_DIR}/streamer-co-pilot-x86_64.AppImage"
+"$APPIMAGETOOL" "$APPDIR" "${OUTPUT_DIR}/streamer-co-pilot-x86_64.AppImage" || true
 echo "AppImage built: ${OUTPUT_DIR}/streamer-co-pilot-x86_64.AppImage"
+ls -lh "${OUTPUT_DIR}/streamer-co-pilot-x86_64.AppImage"

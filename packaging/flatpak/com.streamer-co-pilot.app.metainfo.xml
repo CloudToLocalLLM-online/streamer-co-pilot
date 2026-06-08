@@ -3,6 +3,8 @@
   <id>com.streamer-co-pilot.app</id>
   <name>Streamer Co-Pilot</name>
   <summary>Stream dashboard, chat, overlay, and bot controls</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>BSL-1.1</project_license>
   <developer id="com.imrightguy">
     <name>imrightguy</name>
   </developer>
@@ -10,8 +12,8 @@
     <p>A Flutter desktop app for streamers — real-time chat dashboard, stream status overlay, and bot controls.</p>
     <p>Features: stream status, real-time chat with moderation, custom commands, OBS overlay, compact streaming overlay, song requests.</p>
   </description>
+  <launchable type="desktop-id">com.streamer-co-pilot.app.desktop</launchable>
   <url type="homepage">https://github.com/imrightguy/streamer-co-pilot</url>
-  <project_license>BSL-1.1</project_license>
   <categories>
     <category>Utility</category>
     <category>AudioVideo</category>

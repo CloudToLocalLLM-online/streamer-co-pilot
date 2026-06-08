@@ -2,10 +2,6 @@ id: com.streamer-co-pilot.app
 runtime: org.freedesktop.Platform
 runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
-sdk-extensions:
-  - org.freedesktop.Sdk.Extension.llvm18
-base: io.flutter.BaseApp
-base-version: '24.08'
 command: streamer_co_pilot
 finish-args:
   - --socket=x11
@@ -19,14 +15,20 @@ modules:
   - name: streamer-co-pilot
     buildsystem: simple
     build-commands:
-      - flutter config --enable-linux-desktop
-      - flutter pub get
-      - flutter build linux --release
-      - install -Dm755 build/linux/x64/release/bundle/streamer_co_pilot /app/bin/streamer_co_pilot
-      - cp -r build/linux/x64/release/bundle/lib/* /app/lib/
-      - cp -r build/linux/x64/release/bundle/data/* /app/share/streamer-co-pilot/
+      - install -Dm755 streamer_co_pilot /app/bin/streamer_co_pilot
+      - install -Dm755 lib/libflutter_linux_gtk.so /app/lib/libflutter_linux_gtk.so
+      - install -Dm755 lib/libwindow_manager_plugin.so /app/lib/libwindow_manager_plugin.so
+      - install -Dm755 lib/libscreen_retriever_linux_plugin.so /app/lib/libscreen_retriever_linux_plugin.so
+      - install -Dm755 lib/libapp.so /app/lib/libapp.so
+      - install -Dm644 data/icudtl.dat /app/share/streamer-co-pilot/icudtl.dat
+      - cp -r data/flutter_assets /app/share/streamer-co-pilot/
       - install -Dm644 packaging/flatpak/com.streamer-co-pilot.app.metainfo.xml /app/share/metainfo/com.streamer-co-pilot.app.metainfo.xml
       - install -Dm644 packaging/flatpak/com.streamer-co-pilot.app.desktop /app/share/applications/com.streamer-co-pilot.app.desktop
+      - install -Dm644 packaging/appimage/streamer-co-pilot.png /app/share/icons/hicolor/256x256/apps/com.streamer-co-pilot.app.png
     sources:
       - type: dir
-        path: ../..
+        path: build/linux/x64/release/bundle
+        dest: /
+      - type: dir
+        path: packaging
+        dest: packaging
