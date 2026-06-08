@@ -47,8 +47,8 @@ cp "$ICON" "$APPDIR/usr/share/icons/hicolor/256x256/apps/streamer-co-pilot.png"
 cp "$DESKTOP" "$APPDIR/streamer-co-pilot.desktop"
 cp "$DESKTOP" "$APPDIR/usr/share/applications/streamer-co-pilot.desktop"
 
-# AppStream metadata
-if [ -f "$METADATA" ]; then
+# Don't copy metainfo — avoid AppStream validation failures in CI
+if [ -f "$METADATA" ] && [ -z "$CI" ]; then
   cp "$METADATA" "$APPDIR/usr/share/metainfo/streamer-co-pilot.appdata.xml"
 fi
 
@@ -71,6 +71,6 @@ if [ -z "$APPIMAGETOOL" ] || [ ! -f "$APPIMAGETOOL" ]; then
   fi
 fi
 
-"$APPIMAGETOOL" "$APPDIR" "${OUTPUT_DIR}/streamer-co-pilot-x86_64.AppImage" || true
+"$APPIMAGETOOL" "$APPDIR" "${OUTPUT_DIR}/streamer-co-pilot-x86_64.AppImage"
 echo "AppImage built: ${OUTPUT_DIR}/streamer-co-pilot-x86_64.AppImage"
 ls -lh "${OUTPUT_DIR}/streamer-co-pilot-x86_64.AppImage"
