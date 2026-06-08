@@ -18,3 +18,16 @@ linux/flutter/ephemeral/
 # OS
 .DS_Store
 Thumbs.db
+
+# Python (services/)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Scratch
+test_write.txt
+

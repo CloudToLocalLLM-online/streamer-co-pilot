@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/sse_client.dart';
+import '../models/chat_message.dart';
 
-/// Central state for the bot connection, stream status, chat, and errors.
+/// Central state for the bot connection, stream status, chat, commands, alerts, and errors.
 class StreamerBotProvider extends ChangeNotifier {
   String _botUrl = 'http://localhost:8510';
   String get botUrl => _botUrl;
@@ -16,6 +17,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   StreamerBotProvider() {
     _initPrefs();
+    _initBuiltInCommands();
   }
 
   // ── Persistence ──
@@ -54,6 +56,125 @@ class StreamerBotProvider extends ChangeNotifier {
   String get game => _game;
   String _title = '';
   String get title => _title;
+
+  // ── Commands ──
+
+  List<Map<String, dynamic>> _commands = [];
+  List<Map<String, dynamic>> get commands => _commands;
+
+  void _initBuiltInCommands() {
+    _commands = [
+      {'name': 'uptime', 'response': 'Stream has been live for {uptime}.', 'enabled': true, 'is_built_in': true},
+      {'name': 'socials', 'response': 'Follow me on Twitter/X: @streamer  |  Instagram: @streamer', 'enabled': true, 'is_built_in': true},
+      {'name': 'discord', 'response': 'Join the Discord: discord.gg/streamer', 'enabled': true, 'is_built_in': true},
+      {'name': 'commands', 'response': 'Available commands: !uptime, !socials, !discord, !game, !commands', 'enabled': true, 'is_built_in': true},
+      {'name': 'game', 'response': 'Currently playing: {game}', 'enabled': true, 'is_built_in': true},
+    ];
+    // Also sync to backend if connected
+  }
+
+  Future<void> fetchCommands() async {
+    try {
+      final res = await http
+          .get(Uri.parse('$_botUrl/command/list'))
+          .timeout(const Duration(seconds: 3));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final backend = (data['commands'] as List<dynamic>?)
+                ?.cast<Map<String, dynamic>>() ??
+            [];
+        // Merge: built-in local commands + backend custom commands
+        final builtIn =
+            _commands.where((c) => c['is_built_in'] == true).toList();
+        _commands = [...builtIn, ...backend];
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  Future<bool> saveCommand(String name, String response) async {
+    try {
+      final res = await http
+          .post(Uri.parse('$_botUrl/command/save'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'name': name,
+                'response': response,
+                'enabled': true,
+                'is_built_in': false,
+              }))
+          .timeout(const Duration(seconds: 3));
+      if (res.statusCode == 200) {
+        await fetchCommands();
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteCommand(String name) async {
+    try {
+      final res = await http
+          .post(Uri.parse('$_botUrl/command/delete'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'name': name}))
+          .timeout(const Duration(seconds: 3));
+      if (res.statusCode == 200) {
+        await fetchCommands();
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> runCommand(String name) async {
+    try {
+      final res = await http
+          .post(Uri.parse('$_botUrl/command/run'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'name': name}))
+          .timeout(const Duration(seconds: 3));
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Send a quick-action command response to chat (bypasses the run endpoint,
+  /// just sends the raw text back into chat).
+  Future<bool> sendQuickCommand(String response) async {
+    if (!_connected) return false;
+    return sendMessage(response);
+  }
+
+  // ── Alerts state ──
+
+  List<Map<String, dynamic>> _alerts = [];
+  List<Map<String, dynamic>> get alerts => _alerts;
+
+  Map<String, dynamic>? _currentAlert;
+  Map<String, dynamic>? get currentAlert => _currentAlert;
+  Timer? _alertTimer;
+
+  void _showAlert(Map<String, dynamic> alert) {
+    _currentAlert = alert;
+    notifyListeners();
+    _alertTimer?.cancel();
+    _alertTimer = Timer(const Duration(seconds: 6), () {
+      _currentAlert = null;
+      notifyListeners();
+    });
+  }
+
+  void dismissAlert() {
+    _alertTimer?.cancel();
+    _currentAlert = null;
+    notifyListeners();
+  }
 
   // ── Errors ──
 
@@ -102,8 +223,8 @@ class StreamerBotProvider extends ChangeNotifier {
 
   // ── Chat & connection state ──
 
-  List<Map<String, dynamic>> _chat = [];
-  List<Map<String, dynamic>> get chat => _chat;
+  List<ChatMessage> _chat = [];
+  List<ChatMessage> get chat => _chat;
   bool _connected = false;
   bool get connected => _connected;
 
@@ -213,6 +334,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
     fetchStatus();
     fetchChat();
+    fetchCommands();
     _startErrorPoller();
     _connected = true;
     notifyListeners();
@@ -221,21 +343,37 @@ class StreamerBotProvider extends ChangeNotifier {
 
   void _handleSseEvent(String raw) {
     final parts = raw.split('\x00');
-    if (parts.length == 2 && parts[0] == 'status') {
+    if (parts.length == 2) {
+      final eventType = parts[0];
       try {
         final data = jsonDecode(parts[1]);
-        _streamStatus = data['status'] ?? _streamStatus;
-        _title = data['title'] ?? _title;
-        _game = data['game'] ?? _game;
-        _viewers = data['viewers'] ?? _viewers;
-        notifyListeners();
+        switch (eventType) {
+          case 'status':
+            _streamStatus = data['status'] ?? _streamStatus;
+            _title = data['title'] ?? _title;
+            _game = data['game'] ?? _game;
+            _viewers = data['viewers'] ?? _viewers;
+            notifyListeners();
+            break;
+          case 'alert':
+            _alerts.insert(0, Map<String, dynamic>.from(data));
+            if (_alerts.length > 50) _alerts = _alerts.sublist(0, 50);
+            _showAlert(data);
+            break;
+          case 'chat':
+            _chat.insert(0, ChatMessage.fromJson(Map<String, dynamic>.from(data)));
+            if (_chat.length > 200) _chat = _chat.sublist(0, 200);
+            notifyListeners();
+            break;
+        }
       } catch (e) {
-        _setError('handleSseEvent/status', e);
+        _setError('handleSseEvent/$eventType', e);
       }
     } else {
+      // Legacy: raw JSON chat message
       try {
         final msg = jsonDecode(raw);
-        _chat.insert(0, Map<String, dynamic>.from(msg));
+        _chat.insert(0, ChatMessage.fromJson(msg));
         if (_chat.length > 200) _chat = _chat.sublist(0, 200);
         notifyListeners();
       } catch (e) {
@@ -299,7 +437,10 @@ class StreamerBotProvider extends ChangeNotifier {
           .timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
-        _chat = List<Map<String, dynamic>>.from(data['messages'] ?? []);
+        final messages = data['messages'] as List<dynamic>? ?? [];
+        _chat = messages
+            .map((m) => ChatMessage.fromJson(m as Map<String, dynamic>))
+            .toList();
         notifyListeners();
       }
     } catch (e) {
@@ -321,9 +462,75 @@ class StreamerBotProvider extends ChangeNotifier {
     }
   }
 
+  // ── Moderation ──
+
+  Future<bool> timeoutUser(String user, {int duration = 300}) async {
+    try {
+      final res = await http
+          .post(Uri.parse('$_botUrl/mod/timeout'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'user': user, 'duration': duration}))
+          .timeout(const Duration(seconds: 3));
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> banUser(String user) async {
+    try {
+      final res = await http
+          .post(Uri.parse('$_botUrl/mod/ban'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'user': user}))
+          .timeout(const Duration(seconds: 3));
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> unbanUser(String user) async {
+    try {
+      final res = await http
+          .post(Uri.parse('$_botUrl/mod/unban'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'user': user}))
+          .timeout(const Duration(seconds: 3));
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> clearChat() async {
+    try {
+      final res = await http
+          .post(Uri.parse('$_botUrl/mod/clear'))
+          .timeout(const Duration(seconds: 3));
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> setChatMode(String mode, bool enabled) async {
+    try {
+      final res = await http
+          .post(Uri.parse('$_botUrl/mod/chatmode'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'mode': mode, 'enabled': enabled}))
+          .timeout(const Duration(seconds: 3));
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _serviceProcess?.kill();
+    _alertTimer?.cancel();
     disconnect();
     super.dispose();
   }

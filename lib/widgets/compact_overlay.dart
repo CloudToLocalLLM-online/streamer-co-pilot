@@ -104,9 +104,9 @@ class _CompactOverlayWindowState extends State<CompactOverlayWindow> {
                         itemCount: provider.chat.length,
                         itemBuilder: (_, i) {
                           final msg = provider.chat[provider.chat.length - 1 - i];
-                          final user = msg['user'] ?? '?';
-                          final text = msg['text'] ?? '';
-                          final isMod = msg['is_mod'] == true;
+                          final user = msg.user;
+                          final text = msg.text;
+                          final isMod = msg.isMod;
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 1),
                             child: RichText(

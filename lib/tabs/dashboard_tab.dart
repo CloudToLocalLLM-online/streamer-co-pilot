@@ -125,10 +125,10 @@ class DashboardTab extends StatelessWidget {
                                   itemCount: provider.chat.length,
                                   itemBuilder: (_, i) {
                                     final msg = provider.chat[i];
-                                    final user = msg['user'] ?? '?';
-                                    final text = msg['text'] ?? '';
-                                    final isMod = msg['is_mod'] == true;
-                                    final time = msg['time'] ?? '';
+                                    final user = msg.user;
+                                    final text = msg.text;
+                                    final isMod = msg.isMod;
+                                    final time = msg.time;
                                     return Padding(
                                       padding: const EdgeInsets.symmetric(vertical: 2),
                                       child: RichText(

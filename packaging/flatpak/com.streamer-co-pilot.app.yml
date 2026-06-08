@@ -1,0 +1,33 @@
+id: com.streamer-co-pilot.app
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.llvm18
+base: io.flutter.BaseApp
+base-version: '24.08'
+command: streamer_co_pilot
+finish-args:
+  - --socket=x11
+  - --socket=wayland
+  - --share=network
+  - --share=ipc
+  - --filesystem=home
+  - --device=dri
+
+modules:
+  - name: streamer-co-pilot
+    buildsystem: simple
+    build-commands:
+      - flutter config --enable-linux-desktop
+      - flutter pub get
+      - flutter build linux --release
+      - install -Dm755 build/linux/x64/release/bundle/streamer_co_pilot /app/bin/streamer_co_pilot
+      - cp -r build/linux/x64/release/bundle/lib/* /app/lib/
+      - cp -r build/linux/x64/release/bundle/data/* /app/share/streamer-co-pilot/
+      - install -Dm644 packaging/flatpak/com.streamer-co-pilot.app.metainfo.xml /app/share/metainfo/com.streamer-co-pilot.app.metainfo.xml
+      - install -Dm644 packaging/flatpak/com.streamer-co-pilot.app.desktop /app/share/applications/com.streamer-co-pilot.app.desktop
+    sources:
+      - type: dir
+        path: ../..
+        dest: /
