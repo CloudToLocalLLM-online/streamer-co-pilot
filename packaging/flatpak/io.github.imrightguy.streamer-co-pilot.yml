@@ -28,7 +28,5 @@ modules:
     sources:
       - type: dir
         path: ../../build/linux/x64/release/bundle
-        dest: /
       - type: dir
         path: ../../packaging
-        dest: packaging
