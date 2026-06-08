@@ -47,10 +47,7 @@ cp "$ICON" "$APPDIR/usr/share/icons/hicolor/256x256/apps/streamer-co-pilot.png"
 cp "$DESKTOP" "$APPDIR/streamer-co-pilot.desktop"
 cp "$DESKTOP" "$APPDIR/usr/share/applications/streamer-co-pilot.desktop"
 
-# Don't copy metainfo — avoid AppStream validation failures in CI
-if [ -f "$METADATA" ] && [ -z "$CI" ]; then
-  cp "$METADATA" "$APPDIR/usr/share/metainfo/streamer-co-pilot.appdata.xml"
-fi
+# AppStream metadata (Flatpak only — skip for AppImage)
 
 # AppRun — resolves bundle data/lib relative to AppDir root
 cat > "$APPDIR/AppRun" << 'APPRUN'

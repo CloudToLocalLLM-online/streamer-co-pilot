@@ -27,8 +27,8 @@ modules:
       - install -Dm644 packaging/appimage/streamer-co-pilot.png /app/share/icons/hicolor/256x256/apps/com.streamer-co-pilot.app.png
     sources:
       - type: dir
-        path: build/linux/x64/release/bundle
+        path: ../../build/linux/x64/release/bundle
         dest: /
       - type: dir
-        path: packaging
+        path: ../../packaging
         dest: packaging
