@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>com.streamer-co-pilot.app</id>
+  <id>io.github.imrightguy.streamer-co-pilot</id>
   <name>Streamer Co-Pilot</name>
   <summary>Stream dashboard, chat, overlay, and bot controls</summary>
   <metadata_license>CC0-1.0</metadata_license>
@@ -12,7 +12,7 @@
     <p>A Flutter desktop app for streamers — real-time chat dashboard, stream status overlay, and bot controls.</p>
     <p>Features: stream status, real-time chat with moderation, custom commands, OBS overlay, compact streaming overlay, song requests.</p>
   </description>
-  <launchable type="desktop-id">com.streamer-co-pilot.app.desktop</launchable>
+  <launchable type="desktop-id">io.github.imrightguy.streamer-co-pilot.desktop</launchable>
   <url type="homepage">https://github.com/imrightguy/streamer-co-pilot</url>
   <categories>
     <category>Utility</category>
