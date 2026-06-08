@@ -15,18 +15,20 @@ modules:
   - name: streamer-co-pilot
     buildsystem: simple
     build-commands:
-      - install -Dm755 streamer_co_pilot /app/bin/streamer_co_pilot
-      - install -Dm755 lib/libflutter_linux_gtk.so /app/lib/libflutter_linux_gtk.so
-      - install -Dm755 lib/libwindow_manager_plugin.so /app/lib/libwindow_manager_plugin.so
-      - install -Dm755 lib/libscreen_retriever_linux_plugin.so /app/lib/libscreen_retriever_linux_plugin.so
-      - install -Dm755 lib/libapp.so /app/lib/libapp.so
-      - install -Dm644 data/icudtl.dat /app/share/streamer-co-pilot/icudtl.dat
-      - cp -r data/flutter_assets /app/share/streamer-co-pilot/
+      - install -Dm755 bundle/streamer_co_pilot /app/bin/streamer_co_pilot
+      - install -Dm755 bundle/lib/libflutter_linux_gtk.so /app/lib/libflutter_linux_gtk.so
+      - install -Dm755 bundle/lib/libwindow_manager_plugin.so /app/lib/libwindow_manager_plugin.so
+      - install -Dm755 bundle/lib/libscreen_retriever_linux_plugin.so /app/lib/libscreen_retriever_linux_plugin.so
+      - install -Dm755 bundle/lib/libapp.so /app/lib/libapp.so
+      - install -Dm644 bundle/data/icudtl.dat /app/share/streamer-co-pilot/icudtl.dat
+      - cp -r bundle/data/flutter_assets /app/share/streamer-co-pilot/
       - install -Dm644 packaging/flatpak/io.github.imrightguy.streamer-co-pilot.metainfo.xml /app/share/metainfo/io.github.imrightguy.streamer-co-pilot.metainfo.xml
       - install -Dm644 packaging/flatpak/io.github.imrightguy.streamer-co-pilot.desktop /app/share/applications/io.github.imrightguy.streamer-co-pilot.desktop
       - install -Dm644 packaging/appimage/streamer-co-pilot.png /app/share/icons/hicolor/256x256/apps/io.github.imrightguy.streamer-co-pilot.png
     sources:
       - type: dir
         path: ../../build/linux/x64/release/bundle
+        dest: bundle
       - type: dir
         path: ../../packaging
+        dest: packaging
