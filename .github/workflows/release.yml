@@ -96,7 +96,7 @@ jobs:
           files: /tmp/artifact/streamer-co-pilot.flatpak
 
   build-windows:
-    name: Build Windows
+    name: Build Windows + Installer
     needs: release
     runs-on: windows-latest
     timeout-minutes: 30
@@ -107,7 +107,20 @@ jobs:
           channel: stable
           flutter-version: 3.44.x
       - run: flutter pub get && flutter build windows --release
-      - run: |
+      - name: Build NSIS installer
+        shell: pwsh
+        run: |
+          choco install nsis -y
+          cd packaging/nsis
+          & "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+      - name: Upload installer to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: packaging/nsis/StreamerCoPilot-Setup.exe
+      - name: Also upload portable zip
+        shell: pwsh
+        run: |
           Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath $env:RUNNER_TEMP\streamer-co-pilot-windows-x64.zip
       - uses: softprops/action-gh-release@v2
         with:

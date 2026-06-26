@@ -45,7 +45,7 @@ class _SettingsTabState extends State<SettingsTab> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Connect to the streamer-co-pilot-service. Run the service first, then point this app to it.',
+            'Connect to the built-in bot service. Set your credentials in service/.env first.',
             style: TextStyle(color: Colors.grey),
           ),
           const SizedBox(height: 24),

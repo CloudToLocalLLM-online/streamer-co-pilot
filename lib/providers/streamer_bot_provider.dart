@@ -266,24 +266,53 @@ class StreamerBotProvider extends ChangeNotifier {
     if (envPython != null && envPython.isNotEmpty && await File(envPython).exists()) {
       return envPython;
     }
+
+    // Walk up from the executable to find the repo root (contains service/)
     final appPath = Platform.resolvedExecutable;
-    for (var dir = File(appPath).parent; dir.path != '/'; dir = dir.parent) {
-      final candidate = '${dir.path}/streamer-co-pilot-service/.venv/bin/python3';
-      if (await File(candidate).exists()) return candidate;
+    for (var dir = File(appPath).parent; dir.path != '/' && dir.path != dir.parent.path; dir = dir.parent) {
+      // Windows venv: service/venv/Scripts/python.exe
+      // Linux venv:   service/venv/bin/python3
+      final winCandidate = '${dir.path}\\service\\venv\\Scripts\\python.exe';
+      final linuxCandidate = '${dir.path}/service/venv/bin/python3';
+      if (await File(winCandidate).exists()) return winCandidate;
+      if (await File(linuxCandidate).exists()) return linuxCandidate;
     }
-    final home = Platform.environment['HOME'] ?? '';
-    final fallbacks = [
-      if (home.isNotEmpty) '$home/streamer-co-pilot-service/.venv/bin/python3',
-      '/opt/streamer-co-pilot-service/.venv/bin/python3',
-    ];
-    for (final path in fallbacks) {
-      if (await File(path).exists()) return path;
+
+    // Home directory fallbacks
+    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '';
+    if (home.isNotEmpty) {
+      final winHome = '$home\\dev\\streamer-co-pilot\\service\\venv\\Scripts\\python.exe';
+      final linuxHome = '$home/dev/streamer-co-pilot/service/venv/bin/python3';
+      if (await File(winHome).exists()) return winHome;
+      if (await File(linuxHome).exists()) return linuxHome;
+    }
+
+    // Last resort: system python
+    if (Platform.isWindows) {
+      final result = await Process.run('where', ['python']);
+      if (result.exitCode == 0) {
+        final lines = (result.stdout as String).trim().split('\n');
+        if (lines.isNotEmpty && lines.first.trim().isNotEmpty) {
+          return lines.first.trim();
+        }
+      }
+    } else {
+      for (final name in ['python3', 'python']) {
+        final result = await Process.run('which', [name]);
+        if (result.exitCode == 0) {
+          final path = (result.stdout as String).trim();
+          if (path.isNotEmpty) return path;
+        }
+      }
     }
     return null;
   }
 
   Future<bool> _tryLaunch(String pythonBin) async {
-    final serviceDir = '${Directory(pythonBin).parent.parent.path}/services/bot-service';
+    // Find service/ directory: venv is at service/venv/, so go up 2 levels
+    final venvDir = Directory(pythonBin).parent;       // Scripts/ or bin/
+    final serviceDir = venvDir.parent.path;            // service/
+
     if (!await Directory(serviceDir).exists()) return false;
     try {
       _serviceProcess = await Process.start(
