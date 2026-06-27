@@ -5,25 +5,33 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
-
 jobs:
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  build-windows:
+    name: Build Windows Installer
+    runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: softprops/action-gh-release@v2
+      - uses: subosito/flutter-action@v2
         with:
-          name: Streamer Co-Pilot ${{ github.ref_name }}
-          tag_name: ${{ github.ref_name }}
-          draft: true
-          generate_release_notes: true
+          channel: stable
+          flutter-version: 3.44.x
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup --no-progress -y
+      - name: Build Installer
+        shell: pwsh
+        run: |
+          .\scripts\packaging\build_windows_installer.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: streamer-co-pilot-windows-installer
+          path: dist/windows/*.exe
 
   build-linux:
-    needs: release
+    name: Build Linux AppImage
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -35,114 +43,43 @@ jobs:
       - run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
-      - run: flutter pub get && flutter build linux --release
-      - run: |
-          mkdir -p /tmp/artifact
-          cd build/linux/x64/release && tar czf /tmp/artifact/streamer-co-pilot-linux-x64.tar.gz bundle/
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: /tmp/artifact/streamer-co-pilot-linux-x64.tar.gz
-
-  build-appimage:
-    needs: release
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.44.x
-      - run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev python3-pip squashfs-tools fuse3
-          pip3 install Pillow
-      - run: flutter pub get && flutter build linux --release
+      - run: flutter pub get
+      - run: flutter build linux --release
       - name: Build AppImage
-        run: bash packaging/appimage/build-appimage.sh
-        env:
-          OUTPUT_DIR: /tmp/artifact
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: /tmp/artifact/streamer-co-pilot-x86_64.AppImage
-
-  build-flatpak:
-    name: Build Flatpak
-    needs: release
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.44.x
-      - run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev flatpak flatpak-builder
-          sudo flatpak remote-add --if-not-exists --system flathub https://flathub.org/repo/flathub.flatpakrepo
-          sudo flatpak install --system -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
-      - run: flutter pub get && flutter build linux --release
-      - run: |
-          flatpak-builder --force-clean --repo=repo flatpak_app packaging/flatpak/io.github.imrightguy.streamer-co-pilot.yml
-          flatpak build-bundle repo streamer-co-pilot.flatpak io.github.imrightguy.streamer-co-pilot
-          mkdir -p /tmp/artifact
-          cp streamer-co-pilot.flatpak /tmp/artifact/
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: /tmp/artifact/streamer-co-pilot.flatpak
-
-  build-windows:
-    name: Build Windows + Installer
-    needs: release
-    runs-on: windows-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.44.x
-      - run: flutter pub get && flutter build windows --release
-      - name: Build NSIS installer
-        shell: pwsh
         run: |
-          choco install nsis -y
-          cd packaging/nsis
-          & "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
-      - name: Upload installer to release
+          bash packaging/appimage/build-appimage.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: streamer-co-pilot-linux-appimage
+          path: packaging/appimage/StreamerCoPilot-*.AppImage
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: streamer-co-pilot-windows-installer
+          path: dist/
+      - uses: actions/download-artifact@v4
+        with:
+          name: streamer-co-pilot-linux-appimage
+          path: dist/
+      - name: Generate Release Notes
+        run: |
+          echo "## Streamer Co-Pilot ${{ github.ref_name }}" > release-notes.md
+          echo "" >> release-notes.md
+          echo "### Downloads" >> release-notes.md
+          echo "- [Windows Installer](dist/StreamerCoPilot-Windows-x64-Setup.exe)" >> release-notes.md
+          echo "- [Linux AppImage](dist/StreamerCoPilot-x86_64.AppImage)" >> release-notes.md
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          files: packaging/nsis/StreamerCoPilot-Setup.exe
-      - name: Also upload portable zip
-        shell: pwsh
-        run: |
-          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath $env:RUNNER_TEMP\streamer-co-pilot-windows-x64.zip
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: ${{ runner.temp }}\streamer-co-pilot-windows-x64.zip
-
-  build-macos:
-    name: Build macOS
-    needs: release
-    runs-on: macos-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.44.x
-      - run: flutter pub get && flutter build macos --release
-      - run: |
-          cd build/macos/Build/Products/Release
-          ditto -c -k --sequesterRsrc --keepParent "streamer_co_pilot.app" $RUNNER_TEMP/streamer-co-pilot-macos.zip
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: ${{ runner.temp }}/streamer-co-pilot-macos.zip
+          body_path: release-notes.md
+          files: |
+            dist/*.exe
+            dist/*.AppImage

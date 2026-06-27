@@ -22,6 +22,8 @@ Thumbs.db
 # Build artifacts
 packaging/nsis/StreamerCoPilot-Setup.exe
 packaging/nsis/build-windows-installer.sh
+dist/
+scripts/packaging/*.exe
 
 # Generated plugin registrants
 linux/flutter/generated_plugin_registrant.cc
