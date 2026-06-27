@@ -7,6 +7,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart' as shelf_router;
 import '../providers/obs_controller.dart';
 import '../platforms/stream_platform.dart';
+import '../platforms/twitch_platform.dart';
 import '../models/chat_message.dart';
 
 /// Full state snapshot sent to the AI.
@@ -222,6 +223,37 @@ class AiServer extends ChangeNotifier {
       router.get('/overlay', (request) {
         return shelf.Response.ok(
           _overlayHtml,
+          headers: {'Content-Type': 'text/html; charset=utf-8'},
+        );
+      });
+
+      // GET /auth/callback — Twitch OAuth redirect handler
+      router.get('/auth/callback', (request) async {
+        final code = request.url.queryParameters['code'];
+        if (code == null) {
+          return shelf.Response.ok(
+            '<html><body><h2>❌ Authorization failed</h2><p>No code received.</p></body></html>',
+            headers: {'Content-Type': 'text/html; charset=utf-8'},
+          );
+        }
+        final twitch = _platform as TwitchPlatform?;
+        if (twitch == null) {
+          return shelf.Response.ok(
+            '<html><body><h2>❌ Twitch platform not available</h2></body></html>',
+            headers: {'Content-Type': 'text/html; charset=utf-8'},
+          );
+        }
+        final ok = await twitch.handleAuthCallback(code);
+        if (ok) {
+          // Auto-connect after successful auth
+          twitch.connect(PlatformCredentials(channelName: null));
+          return shelf.Response.ok(
+            '<html><body><h2>✅ Authorized!</h2><p>You can close this window and return to Streamer Co-Pilot.</p></body></html>',
+            headers: {'Content-Type': 'text/html; charset=utf-8'},
+          );
+        }
+        return shelf.Response.ok(
+          '<html><body><h2>❌ Authorization failed</h2><p>Token exchange failed.</p></body></html>',
           headers: {'Content-Type': 'text/html; charset=utf-8'},
         );
       });
