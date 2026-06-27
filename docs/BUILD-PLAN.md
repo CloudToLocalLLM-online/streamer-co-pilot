@@ -12,29 +12,80 @@
 - [x] Add dependencies: `obs_websocket`, `shelf`, `shelf_router`
 - [x] Write architecture docs
 
-## Phase 2: Twitch Integration (Current)
+## Phase 2: Platform Layer
 
-- [ ] Implement `TwitchPlatform` — IRC chat + Helix API
-- [ ] OAuth token management (storage, refresh)
-- [ ] Wire `chatStream` and `statusStream`
-- [ ] Test with real Twitch credentials
+### StreamPlatform Interface ✅ (Done)
 
-## Phase 3: Wire Everything Together
+Abstract contract in `lib/platforms/stream_platform.dart`. Every platform implements:
+- `connect(credentials)` / `disconnect()` / `connected`
+- `chatStream` / `statusStream` — real-time event streams
+- `sendMessage(text)` / `fetchRecentChat(count)` / `fetchStatus()`
+- Moderation: `timeoutUser`, `banUser`, `unbanUser`, `clearChat`, `setChatMode`
 
-- [ ] Start `AiServer` on app launch
-- [ ] Start `ObsController` on app launch (auto-connect to OBS)
+### TwitchPlatform (First Implementation)
+
+| File | Purpose |
+|------|---------|
+| `lib/platforms/twitch_platform.dart` | Main class implementing `StreamPlatform` |
+| `lib/platforms/twitch_auth.dart` | OAuth token lifecycle (generate URL, exchange code, refresh, store) |
+| `lib/platforms/twitch_irc_client.dart` | IRC connection, message parsing, capability negotiation |
+| `lib/platforms/twitch_helix_client.dart` | Helix REST API wrapper (status, moderation, users) |
+
+**OAuth Flow:**
+1. User clicks "Connect to Twitch" in Settings
+2. App opens browser to `https://id.twitch.tv/oauth2/authorize` with scopes
+3. User authorizes → Twitch redirects to `http://localhost:8511/auth/callback`
+4. App exchanges code for access token + refresh token
+5. Tokens stored in SharedPreferences
+6. Refresh token used when access token expires (~4h lifetime)
+
+**IRC Details:**
+- Server: `irc.chat.twitch.tv:6697` (TLS)
+- Auth: `PASS oauth:<token>`, `NICK <bot_username>`
+- Capabilities: `twitch.tv/membership twitch.tv/tags twitch.tv/commands`
+- Rate limit: 20 messages per 30 seconds
+
+**Helix Endpoints:**
+- `GET /helix/streams` — stream status (poll 30s)
+- `GET /helix/users` — user ID resolution
+- `POST /helix/moderation/bans` — ban
+- `POST /helix/moderation/timeouts` — timeout
+- `PATCH /helix/chat/settings` — slow/emote/sub-only
+
+### YouTubePlatform & KickPlatform
+
+Documented in `PLATFORM-INTEGRATION.md` as future work. The interface is ready — implementations come when needed.
+
+## Phase 3: OBS Integration
+
+### ObsController ✅ (Skeleton Done)
+
+- [x] Connect/disconnect via `obs-websocket`
+- [x] Read scenes, sources, stream/record status
+- [x] Switch scene, toggle source, start/stop stream/record
+- [ ] **Auto-detect** — try `localhost:4455` on launch, show status
+- [ ] **Setup guide** — if connection fails, show dialog with OBS WebSocket setup instructions
+- [ ] **Test connection** — button in Settings
+- [ ] **Status indicator** — Dashboard shows OBS connection at a glance
+
+**obs-websocket is built into OBS Studio 28+** (Tools → WebSocket Server Settings). No plugin to install. The app just needs to guide the user through enabling it.
+
+## Phase 4: Wire Everything Together
+
+- [ ] Start `AiServer` on app launch (port 8511)
+- [ ] Start `ObsController` auto-connect on launch
 - [ ] Platform selector in Settings tab
 - [ ] OBS config (host, port, password) in Settings
-- [ ] Dashboard shows OBS state + stream status
+- [ ] Dashboard shows OBS state + stream status + chat
 
-## Phase 4: AI Integration
+## Phase 5: AI Integration
 
 - [ ] Hermes skill for streamer-co-pilot
 - [ ] Decision loop: poll `/state`, decide, send `/command`
 - [ ] Event-driven mode (WebSocket instead of polling)
 - [ ] Alert overlay (donations, follows, subs)
 
-## Phase 5: Polish & Release
+## Phase 6: Polish & Release
 
 - [ ] Tests (widget + unit + integration)
 - [ ] Windows installer (NSIS)
@@ -42,23 +93,12 @@
 - [ ] macOS DMG
 - [ ] CI pipeline
 
-## Dependencies Between Phases
-
-```
-Phase 1 ──► Phase 2 ──► Phase 3 ──► Phase 4
-                │                        │
-                └── Phase 2.5 ───────────┘
-                (OBS + Platform
-                 both working)
-```
-
-Phase 2 (Twitch) and Phase 3 (wiring) can partially overlap — the AI server and OBS controller can be tested independently of Twitch.
-
 ## Risk Register
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Twitch OAuth complexity | High | Start with a simple token, add refresh later |
+| Twitch OAuth complexity | High | Start with simple token, add refresh later |
+| IRC rate limits (20/30s) | Medium | Message queue with rate limiter |
 | obs_websocket API changes | Low | Pinned version in pubspec |
 | Scope creep (too many platforms) | Medium | Twitch only for MVP |
-| Hermes integration undefined | Medium | Define AI interface first (done) |
+| Hermes integration undefined | Medium | AI interface already defined in docs |
