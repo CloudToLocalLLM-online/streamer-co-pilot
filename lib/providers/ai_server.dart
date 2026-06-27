@@ -258,7 +258,7 @@ class AiServer extends ChangeNotifier {
         );
       });
 
-      _server = await shelf_io.serve(router, '0.0.0.0', port);
+      _server = await shelf_io.serve(router.call, '0.0.0.0', port);
       _running = true;
       notifyListeners();
       debugPrint('[AiServer] Started on port $port');

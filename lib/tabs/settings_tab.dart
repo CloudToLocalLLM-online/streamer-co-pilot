@@ -68,7 +68,7 @@ class _SettingsTabState extends State<SettingsTab> {
 
           // Platform selector
           DropdownButtonFormField<String>(
-            value: 'Twitch',
+            initialValue: 'Twitch',
             decoration: const InputDecoration(
               labelText: 'Platform',
               prefixIcon: Icon(Icons.live_tv),
@@ -112,7 +112,7 @@ class _SettingsTabState extends State<SettingsTab> {
 
           // Twitch OAuth
           Consumer<TwitchPlatform>(
-            builder: (_, twitch, __) {
+            builder: (_, twitch, child) {
               if (twitch.auth.isAuthenticated) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,11 +131,10 @@ class _SettingsTabState extends State<SettingsTab> {
                         onPressed: () async {
                           await twitch.auth.clearTokens();
                           twitch.disconnect();
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Disconnected from Twitch')),
-                            );
-                          }
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Disconnected from Twitch')),
+                          );
                         },
                         icon: const Icon(Icons.logout),
                         label: const Text('Disconnect Twitch'),
@@ -220,7 +219,7 @@ class _SettingsTabState extends State<SettingsTab> {
           const SizedBox(height: 16),
 
           Consumer<ObsController>(
-            builder: (_, obs, __) {
+            builder: (_, obs, child) {
               return Column(
                 children: [
                   Row(
@@ -374,7 +373,7 @@ class _SettingsTabState extends State<SettingsTab> {
                   onPressed: () async {
                     final provider = context.read<StreamerBotProvider>();
                     final ok = await provider.connectSse();
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(ok ? '✅ Connected!' : '❌ Connection failed'),
@@ -419,7 +418,7 @@ class _SettingsTabState extends State<SettingsTab> {
     final twitch = context.read<TwitchPlatform>();
     final clientId = _twitchClientIdController.text.trim();
     final clientSecret = _twitchClientSecretController.text.trim();
-    final channelName = _channelNameController.text.trim();
+    _channelNameController.text.trim();
 
     if (clientId.isEmpty || clientSecret.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

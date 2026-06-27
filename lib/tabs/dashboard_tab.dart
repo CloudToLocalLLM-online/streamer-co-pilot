@@ -16,7 +16,7 @@ class DashboardTab extends StatelessWidget {
         children: [
           // ── Stream Status Card ──
           Consumer<StreamerBotProvider>(
-            builder: (_, provider, __) {
+            builder: (_, provider, child) {
               return Card(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -83,7 +83,7 @@ class DashboardTab extends StatelessWidget {
 
           // ── OBS Status Card ──
           Consumer<ObsController>(
-            builder: (_, obs, __) {
+            builder: (_, obs, child) {
               return Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -153,7 +153,7 @@ class DashboardTab extends StatelessWidget {
 
           // ── Platform Status Card ──
           Consumer<TwitchPlatform>(
-            builder: (_, twitch, __) {
+            builder: (_, twitch, child) {
               return Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -231,7 +231,7 @@ class DashboardTab extends StatelessWidget {
                     const Divider(),
                     Expanded(
                       child: Consumer<StreamerBotProvider>(
-                        builder: (_, provider, __) {
+                        builder: (_, provider, child) {
                           if (provider.chat.isEmpty) {
                             return const Center(
                               child: Text(

@@ -47,7 +47,7 @@ class ObsController extends ChangeNotifier {
   int _port = 4455;
   String _password = '';
 
-  bool _autoReconnect = true;
+  final bool _autoReconnect = true;
   Timer? _reconnectTimer;
   Timer? _pollTimer;
 

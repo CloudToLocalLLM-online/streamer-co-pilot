@@ -188,7 +188,7 @@ class _MainScreenState extends State<MainScreen>
         ),
       ),
       body: Consumer<StreamerBotProvider>(
-        builder: (_, provider, _) => Column(
+        builder: (_, provider, child) => Column(
           children: [
             const ErrorBanner(),
             Expanded(

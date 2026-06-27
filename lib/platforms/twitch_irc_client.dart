@@ -24,12 +24,10 @@ class TwitchIrcClient {
   late final Stream<ChatMessage> messages;
 
   TwitchIrcClient({
-    required String username,
-    required String oauthToken,
-    required String channel,
-  })  : _username = username,
-        _oauthToken = oauthToken,
-        _channel = channel {
+    required this._username,
+    required this._oauthToken,
+    required this._channel,
+  }) {
     messages = _initMessageStream();
   }
 

@@ -99,6 +99,10 @@ Send a command. The app routes it to OBS or the platform.
 
 Returns an HTML page designed for OBS browser source. Shows stream status bar + scrolling chat. Polls `/state` every 5s.
 
+### `GET /auth/callback` — Twitch OAuth Redirect
+
+Twitch redirects here after user authorizes the app. Exchanges the code for tokens and auto-connects.
+
 ## How Hermes Uses This
 
 1. **Poll `/state`** every 5-10s to maintain awareness
