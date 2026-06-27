@@ -19,19 +19,6 @@ linux/flutter/ephemeral/
 .DS_Store
 Thumbs.db
 
-# Python (services/)
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-venv/
-*.egg-info/
-.pytest_cache/
-
-# Scratch
-test_write.txt
-
-
 # Build artifacts
 packaging/nsis/StreamerCoPilot-Setup.exe
 packaging/nsis/build-windows-installer.sh
@@ -44,7 +31,3 @@ macos/Flutter/GeneratedPluginRegistrant.swift
 windows/flutter/generated_plugin_registrant.cc
 windows/flutter/generated_plugin_registrant.h
 windows/flutter/generated_plugins.cmake
-
-# Python venv
-service/venv/
-service/.env

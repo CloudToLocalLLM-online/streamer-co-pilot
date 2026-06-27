@@ -45,7 +45,7 @@ class _SettingsTabState extends State<SettingsTab> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Connect to the built-in bot service. Set your credentials in service/.env first.',
+            'Connect to a streaming platform. Configure your credentials in Settings.',
             style: TextStyle(color: Colors.grey),
           ),
           const SizedBox(height: 24),
@@ -115,12 +115,9 @@ class _SettingsTabState extends State<SettingsTab> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Text(
-              '# Set PLATFORM=twitch in .env\n'
-              'TWITCH_CLIENT_ID=xxx \\\n'
-              'TWITCH_CLIENT_SECRET=*** \\\n'
-              'BOT_ID=123456 \\\n'
-              'CHANNEL_NAME=your_channel \\\n'
-              'python3 api.py',
+              '# Platform credentials in Settings\n'
+              'Select your platform (Twitch, YouTube, Kick)\n'
+              'and enter your credentials below.',
               style: TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 11,

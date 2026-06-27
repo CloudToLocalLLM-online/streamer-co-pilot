@@ -1,93 +1,94 @@
 # Streamer Co-Pilot 🎮
 
-A Flutter desktop app for streamers — real-time chat dashboard, stream status overlay, and bot controls.
+A Flutter desktop app that gives an AI (Hermes, Aigent, etc.) the ability to see, hear, and act in a live stream.
 
-The Python/FastAPI bot service lives in `service/` — same repo, no separate repository needed.
+**This is not a standalone product.** It's a **body** for an AI — sensors (OBS state, chat, stream status) and actuators (switch scenes, toggle cam/mic, send chat, trigger alerts). The AI connects via a simple API, reads the context, and sends commands.
+
+## Architecture
+
+```
+┌──────────────────────────────────────────┐
+│  Streamer Co-Pilot (Flutter)             │
+│                                          │
+│  ┌──────────┐  ┌──────────┐            │
+│  │ OBS Ctrl │  │ Platform │            │
+│  │ (senses  │  │ (chat +  │            │
+│  │  + acts) │  │  status) │            │
+│  └──────────┘  └──────────┘            │
+│                                          │
+│  ┌──────────────────────────────────┐   │
+│  │  AI Interface (HTTP/WebSocket)   │   │
+│  │  → Hermes/Aigent connects here   │   │
+│  │  → reads state, sends commands   │   │
+│  └──────────────────────────────────┘   │
+└──────────────────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────────────┐
+│  Hermes / Aigent (the AI)               │
+│  → "Scene changed, switch back?"        │
+│  → "Chat asking, respond"               │
+│  → "Stream 3h, suggest break"           │
+└──────────────────────────────────────────┘
+```
 
 ## Features
 
-- **Dashboard** — stream status (live/offline), viewer count, game, title, recent chat messages
-- **Chat tab** — scrollable chat viewer with message send
-- **Settings** — configure bot API URL, connection management
-- **OBS Overlay** — browser source overlay (`overlay/index.html`) for stream status bar + alerts
+- **OBS Control** — scenes, sources, cam/mic toggle, audio, recording/streaming
+- **Multi-platform chat** — Twitch, YouTube Live, Kick (extensible)
+- **Stream status** — live/offline, viewers, game, title, uptime
+- **Moderation** — timeout, ban, unban, slow/emote/sub-only modes
+- **Alerts** — donations, follows, subs, raids with visual + TTS
+- **OBS Overlay** — browser source for alerts + chat overlay
+- **AI Interface** — REST API + WebSocket for AI agents to connect
 
 ## Project Structure
 
 ```
 streamer-co-pilot/
-├── lib/                  # Flutter app (Dart)
-├── service/              # Python/FastAPI bot backend
-│   ├── api.py             # FastAPI server (port 8510)
-│   ├── alerts/            # Alert management
-│   ├── events/            # Event bus
-│   ├── integrations/      # StreamElements, etc.
-│   ├── requirements.txt   # Python deps
-│   └── .env.example       # Copy to .env, fill in credentials
-├── overlay/               # OBS browser source overlay
-├── packaging/             # NSIS installer, AppImage, Flatpak
-├── windows/               # Windows runner (CMake)
-├── linux/                 # Linux runner
-├── macos/                 # macOS runner
-└── .github/workflows/     # CI: build + release (Linux, Windows, macOS)
+├── lib/
+│   ├── main.dart                  # Entry point + overlay mode
+│   ├── providers/                 # State management
+│   │   ├── streamer_bot_provider.dart  # Central state
+│   │   ├── obs_controller.dart         # OBS websocket control
+│   │   └── ai_server.dart              # HTTP server for AI
+│   ├── models/                    # Data models
+│   ├── platforms/                 # Platform abstractions
+│   │   ├── stream_platform.dart       # Abstract interface
+│   │   ├── twitch_platform.dart        # Twitch impl
+│   │   └── ...
+│   ├── services/                  # Low-level clients
+│   │   ├── sse_client.dart            # SSE event stream
+│   │   └── obs_client.dart            # OBS websocket client
+│   ├── tabs/                      # UI tabs
+│   │   ├── dashboard_tab.dart
+│   │   ├── chat_tab.dart
+│   │   └── settings_tab.dart
+│   ├── widgets/                   # Reusable widgets
+│   └── theme/                     # Dark theme
+├── overlay/                       # OBS browser source HTML
+├── packaging/                     # Installers
+└── .github/workflows/             # CI
 ```
 
 ## Quick Start
 
-### 1. Bot Service
-
-```bash
-cd service
-python -m venv venv
-
-# Windows
-source venv/Scripts/activate
-
-# Linux
-source venv/bin/activate
-
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your Twitch credentials
-python api.py
-```
-
-The service runs on `http://localhost:8510`.
-
-### 2. Flutter App
-
 ```bash
 flutter pub get
-flutter run -d windows    # or -d linux / -d macos
+flutter run -d windows
 ```
 
-The app auto-detects the service and connects.
+The app starts an embedded HTTP server (port 8511) for the OBS overlay and AI interface.
 
-## Build a Windows Installer
+## AI API
 
-```bash
-# 1. Build the release binary
-flutter build windows --release
+The app exposes a REST API at `http://localhost:8511`:
 
-# 2. Install NSIS (if not already installed)
-choco install nsis -y
-# or: winget install NSIS.NSIS
-
-# 3. Build the installer
-cd packaging/nsis
-makensis installer.nsi
-```
-
-Output: `packaging/nsis/StreamerCoPilot-Setup.exe`
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `TWITCH_BOT_PORT` | Backend API port | `8510` |
-| `TWITCH_CLIENT_ID` | Twitch app client ID | — |
-| `TWITCH_CLIENT_SECRET` | Twitch app secret | — |
-| `CHANNEL_NAME` | Twitch channel to monitor | — |
-| `STREAMER_COPILOT_PYTHON` | Custom path to Python binary | auto-detected |
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/state` | GET | Full stream + OBS state snapshot |
+| `/command` | POST | Send a command (switch scene, toggle cam, send chat, etc.) |
+| `/events` | GET | SSE stream of real-time events |
 
 ## License
 
