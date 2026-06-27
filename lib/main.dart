@@ -4,6 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'theme/app_theme.dart';
 import 'providers/streamer_bot_provider.dart';
+import 'providers/obs_controller.dart';
+import 'providers/ai_server.dart';
+import 'platforms/twitch_platform.dart';
+import 'platforms/stream_platform.dart';
 import 'widgets/connection_indicator.dart';
 import 'widgets/error_banner.dart';
 import 'widgets/compact_overlay.dart';
@@ -20,7 +24,6 @@ void main() async {
        Platform.environment.containsKey('SCOP_OVERLAY'));
 
   if (isOverlay) {
-    // ── Always-on-top compact overlay window ──
     await windowManager.waitUntilReadyToShow(
       const WindowOptions(
         size: Size(280, 500),
@@ -33,13 +36,15 @@ void main() async {
       ),
       () async {},
     );
-    // Make it click-through for mouse passthrough (optional)
     await windowManager.setResizable(true);
     await windowManager.setOpacity(0.92);
 
     runApp(
-      ChangeNotifierProvider(
-        create: (_) => StreamerBotProvider(),
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => StreamerBotProvider()),
+          ChangeNotifierProvider(create: (_) => ObsController()),
+        ],
         child: MaterialApp(
           title: 'SCP Overlay',
           theme: botTheme,
@@ -49,7 +54,6 @@ void main() async {
       ),
     );
   } else {
-    // ── Full desktop app ──
     await windowManager.waitUntilReadyToShow(
       const WindowOptions(
         size: Size(1000, 700),
@@ -61,16 +65,61 @@ void main() async {
     );
 
     runApp(
-      ChangeNotifierProvider(
-        create: (_) => StreamerBotProvider(),
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => StreamerBotProvider()),
+          ChangeNotifierProvider(create: (_) => ObsController()),
+          ChangeNotifierProvider(create: (_) => TwitchPlatform()),
+          ChangeNotifierProvider(create: (_) {
+            final aiServer = AiServer();
+            // Wired after build in _startServices
+            return aiServer;
+          }),
+        ],
         child: const StreamerCoPilotApp(),
       ),
     );
   }
 }
 
-class StreamerCoPilotApp extends StatelessWidget {
+class StreamerCoPilotApp extends StatefulWidget {
   const StreamerCoPilotApp({super.key});
+
+  @override
+  State<StreamerCoPilotApp> createState() => _StreamerCoPilotAppState();
+}
+
+class _StreamerCoPilotAppState extends State<StreamerCoPilotApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startServices();
+    });
+  }
+
+  void _startServices() {
+    // Wire providers together
+    final obs = context.read<ObsController>();
+    final twitch = context.read<TwitchPlatform>();
+    final aiServer = context.read<AiServer>();
+
+    aiServer.setObs(obs);
+    aiServer.setPlatform(twitch);
+
+    // Start AI server
+    aiServer.start(port: 8511);
+
+    // Try auto-connect OBS
+    obs.connect();
+
+    // Try auto-connect Twitch if tokens exist
+    twitch.auth.loadTokens().then((hasTokens) {
+      if (hasTokens) {
+        twitch.connect(PlatformCredentials(channelName: null));
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +172,6 @@ class _MainScreenState extends State<MainScreen>
           ],
         ),
         actions: [
-          // Compact overlay toggle
           IconButton(
             tooltip: 'Open compact overlay',
             icon: const Icon(Icons.picture_in_picture, size: 20),
@@ -160,8 +208,6 @@ class _MainScreenState extends State<MainScreen>
   }
 
   void _launchOverlay() async {
-    // Launch overlay window: set env var and spawn a new instance
-    // On Linux, we just spawn the same binary with OVERLAY_MODE=1
     await windowManager.hide();
     try {
       await Process.start(

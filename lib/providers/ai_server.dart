@@ -63,8 +63,8 @@ class AiCommandResult {
 ///
 /// Hermes/Aigent connects here to read state and send actions.
 class AiServer extends ChangeNotifier {
-  final ObsController _obs;
-  final StreamPlatform? _platform;
+  ObsController? _obs;
+  StreamPlatform? _platform;
 
   HttpServer? _server;
   int _port = 8511;
@@ -76,7 +76,16 @@ class AiServer extends ChangeNotifier {
   final List<ChatMessage> _chatBuffer = [];
   static const _maxChatBuffer = 100;
 
-  AiServer(this._obs, this._platform) {
+  AiServer();
+
+  /// Set the OBS controller reference (called after construction).
+  void setObs(ObsController obs) {
+    _obs = obs;
+  }
+
+  /// Set the platform reference (called after construction).
+  void setPlatform(StreamPlatform? platform) {
+    _platform = platform;
     _platform?.chatStream.listen(_onChatMessage);
   }
 
@@ -90,7 +99,7 @@ class AiServer extends ChangeNotifier {
   /// Build the current state snapshot for the AI.
   AiStateSnapshot buildSnapshot() {
     return AiStateSnapshot(
-      obs: _obs.state,
+      obs: _obs?.state ?? const ObsState(),
       platformConnected: _platform?.connected ?? false,
       chatMessageCount: _chatBuffer.length,
       recentChatPreview: _chatBuffer
@@ -109,13 +118,15 @@ class AiServer extends ChangeNotifier {
       case 'switch_scene':
         final name = params['scene'] as String?;
         if (name == null) return const AiCommandResult(success: false, message: 'Missing scene');
-        final ok = await _obs.switchScene(name);
+        if (_obs == null) return const AiCommandResult(success: false, message: 'OBS not connected');
+        final ok = await _obs!.switchScene(name);
         return AiCommandResult(success: ok, message: ok ? 'Switched to $name' : 'Failed');
 
       case 'toggle_source':
         final name = params['source'] as String?;
         if (name == null) return const AiCommandResult(success: false, message: 'Missing source');
-        final ok = await _obs.toggleSource(name);
+        if (_obs == null) return const AiCommandResult(success: false, message: 'OBS not connected');
+        final ok = await _obs!.toggleSource(name);
         return AiCommandResult(success: ok, message: ok ? 'Toggled $name' : 'Failed');
 
       case 'set_source':
@@ -124,17 +135,20 @@ class AiServer extends ChangeNotifier {
         if (name == null || enabled == null) {
           return const AiCommandResult(success: false, message: 'Missing source or enabled');
         }
-        final ok = await _obs.setSourceEnabled(name, enabled);
+        if (_obs == null) return const AiCommandResult(success: false, message: 'OBS not connected');
+        final ok = await _obs!.setSourceEnabled(name, enabled);
         return AiCommandResult(success: ok, message: ok
             ? '${enabled ? "Enabled" : "Disabled"} $name'
             : 'Failed');
 
       case 'toggle_stream':
-        final ok = await _obs.toggleStream();
+        if (_obs == null) return const AiCommandResult(success: false, message: 'OBS not connected');
+        final ok = await _obs!.toggleStream();
         return AiCommandResult(success: ok, message: ok ? 'Toggled stream' : 'Failed');
 
       case 'toggle_recording':
-        final ok = await _obs.toggleRecording();
+        if (_obs == null) return const AiCommandResult(success: false, message: 'OBS not connected');
+        final ok = await _obs!.toggleRecording();
         return AiCommandResult(success: ok, message: ok ? 'Toggled recording' : 'Failed');
 
       // ── Chat commands ──
@@ -199,7 +213,7 @@ class AiServer extends ChangeNotifier {
       // GET /health — simple health check
       router.get('/health', (request) {
         return shelf.Response.ok(
-          jsonEncode({'status': 'ok', 'obs_connected': _obs.state.connected}),
+          jsonEncode({'status': 'ok', 'obs_connected': _obs?.state.connected ?? false}),
           headers: {'Content-Type': 'application/json'},
         );
       });
