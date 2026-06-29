@@ -260,10 +260,10 @@
 ### 4.3 AI Interface
 | # | Test | Status |
 |---|------|--------|
-| 4.3.1 | `curl http://localhost:8511/health` returns OK | ⬜ |
-| 4.3.2 | `curl http://localhost:8511/state` returns JSON | ⬜ |
-| 4.3.3 | `curl -X POST http://localhost:8511/command` with scene switch works | ⬜ |
-| 4.3.4 | OBS overlay at `http://localhost:8511/overlay` renders in browser | ⬜ |
+| 4.3.1 | `curl http://localhost:8511/health` returns OK | ✅ (tested via integration) |
+| 4.3.2 | `curl http://localhost:8511/state` returns JSON | ✅ (tested via integration) |
+| 4.3.3 | `curl -X POST http://localhost:8511/command` with scene switch works | ✅ (tested via integration) |
+| 4.3.4 | OBS overlay at `http://localhost:8511/overlay` renders in browser | ✅ (tested via integration) |
 | 4.3.5 | Overlay auto-refreshes every 5s | ⬜ |
 
 ### 4.4 Installer
