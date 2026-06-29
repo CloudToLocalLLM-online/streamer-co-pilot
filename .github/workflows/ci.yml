@@ -80,6 +80,13 @@ jobs:
   build-macos:
     name: Build (macOS) [disabled]
     needs: test
+    # macOS builds are disabled with continue-on-error: true because:
+    # 1. macOS GitHub Actions runners are expensive and have limited availability
+    #    (only available on paid plans or with limited free minutes).
+    # 2. The Flutter macOS build requires code signing setup which isn't configured yet.
+    # 3. The app is primarily targeted at Windows and Linux desktop users.
+    # To re-enable: remove continue-on-error, set up code signing certs in repo secrets,
+    # and add a notarization step. See docs/macos-release.md when available.
     continue-on-error: true
     runs-on: macos-latest
     timeout-minutes: 30

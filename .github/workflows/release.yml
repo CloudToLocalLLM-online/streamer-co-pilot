@@ -47,11 +47,11 @@ jobs:
       - run: flutter build linux --release
       - name: Build AppImage
         run: |
-          bash packaging/appimage/build-appimage.sh
+          OUTPUT_DIR="${GITHUB_WORKSPACE}/packaging/appimage" bash packaging/appimage/build-appimage.sh
       - uses: actions/upload-artifact@v4
         with:
           name: streamer-co-pilot-linux-appimage
-          path: packaging/appimage/StreamerCoPilot-*.AppImage
+          path: packaging/appimage/streamer-co-pilot-*.AppImage
 
   create-release:
     name: Create GitHub Release
@@ -64,7 +64,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: streamer-co-pilot-windows-installer
-          path: dist/
+          path: dist/windows/
       - uses: actions/download-artifact@v4
         with:
           name: streamer-co-pilot-linux-appimage
@@ -74,12 +74,12 @@ jobs:
           echo "## Streamer Co-Pilot ${{ github.ref_name }}" > release-notes.md
           echo "" >> release-notes.md
           echo "### Downloads" >> release-notes.md
-          echo "- [Windows Installer](dist/StreamerCoPilot-Windows-x64-Setup.exe)" >> release-notes.md
+          echo "- [Windows Installer](dist/windows/StreamerCoPilot-Windows-x64-Setup.exe)" >> release-notes.md
           echo "- [Linux AppImage](dist/StreamerCoPilot-x86_64.AppImage)" >> release-notes.md
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           body_path: release-notes.md
           files: |
-            dist/*.exe
+            dist/windows/*.exe
             dist/*.AppImage

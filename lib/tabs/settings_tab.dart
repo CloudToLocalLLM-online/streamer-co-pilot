@@ -20,23 +20,40 @@ class _SettingsTabState extends State<SettingsTab> {
   final _twitchClientIdController = TextEditingController();
   final _twitchClientSecretController = TextEditingController();
   final _channelNameController = TextEditingController();
+  StreamerBotProvider? _botProvider;
 
   @override
   void initState() {
     super.initState();
-    _urlController.text = context.read<StreamerBotProvider>().botUrl;
-    context.read<StreamerBotProvider>().addListener(_onProviderChange);
+    _botProvider = context.read<StreamerBotProvider>();
+    _urlController.text = _botProvider!.botUrl;
+    _botProvider!.addListener(_onProviderChange);
+    _loadSavedSettings();
+  }
+
+  Future<void> _loadSavedSettings() async {
+    final twitch = context.read<TwitchPlatform>();
+    final hasCreds = await twitch.auth.loadCredentials();
+    if (hasCreds) {
+      _twitchClientIdController.text = twitch.auth.clientId ?? '';
+    }
+    final channelName = await twitch.auth.loadChannelName();
+    if (channelName != null) {
+      _channelNameController.text = channelName;
+    }
   }
 
   void _onProviderChange() {
-    if (_urlController.text != context.read<StreamerBotProvider>().botUrl) {
-      _urlController.text = context.read<StreamerBotProvider>().botUrl;
+    final provider = _botProvider;
+    if (provider != null && _urlController.text != provider.botUrl) {
+      _urlController.text = provider.botUrl;
     }
   }
 
   @override
   void dispose() {
-    context.read<StreamerBotProvider>().removeListener(_onProviderChange);
+    _botProvider?.removeListener(_onProviderChange);
+    _botProvider = null;
     _urlController.dispose();
     _obsHostController.dispose();
     _obsPortController.dispose();
@@ -430,6 +447,7 @@ class _SettingsTabState extends State<SettingsTab> {
     twitch.configure(clientId: clientId, clientSecret: clientSecret);
 
     // Save credentials and channel name
+    await twitch.auth.saveCredentials();
     if (channelName.isNotEmpty) {
       await twitch.auth.saveChannelName(channelName);
     }

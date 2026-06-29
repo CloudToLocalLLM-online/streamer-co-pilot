@@ -26,9 +26,10 @@ class TwitchStreamStatus {
 /// Handles all REST API calls: stream status, user info, moderation.
 class TwitchHelixClient {
   final TwitchAuth _auth;
-  final http.Client _http = http.Client();
+  final http.Client _http;
 
-  TwitchHelixClient(this._auth);
+  TwitchHelixClient(this._auth, [http.Client? httpClient])
+      : _http = httpClient ?? http.Client();
 
   /// Headers for authenticated Helix requests.
   Future<Map<String, String>> _headers() async {

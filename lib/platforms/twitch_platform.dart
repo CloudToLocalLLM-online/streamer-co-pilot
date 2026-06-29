@@ -29,8 +29,8 @@ class TwitchPlatform extends StreamPlatform with ChangeNotifier {
   String? _broadcasterId;
   String? _moderatorId;
 
-  TwitchPlatform() {
-    _helix = TwitchHelixClient(auth);
+  TwitchPlatform({TwitchHelixClient? helixClient}) {
+    _helix = helixClient ?? TwitchHelixClient(auth);
     _chatController = StreamController<ChatMessage>.broadcast();
     _statusController = StreamController<StreamStatus>.broadcast();
   }

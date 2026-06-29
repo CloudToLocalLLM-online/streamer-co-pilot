@@ -128,6 +128,9 @@ class TwitchIrcClient {
   }
 
   /// Parse a PRIVMSG line into a ChatMessage.
+  @visibleForTesting
+  ChatMessage? parsePrivMsg(String line) => _parsePrivMsg(line);
+
   ChatMessage? _parsePrivMsg(String line) {
     try {
       // Extract tags (everything before the first ':user!')

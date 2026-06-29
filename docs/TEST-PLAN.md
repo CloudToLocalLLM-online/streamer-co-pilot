@@ -57,27 +57,27 @@
 ### 1.5 TwitchIrcClient (message parsing)
 | # | Test | Status |
 |---|------|--------|
-| 1.5.1 | Parse PRIVMSG with tags (mod, sub, vip, broadcaster) | ⬜ |
-| 1.5.2 | Parse PRIVMSG without tags | ⬜ |
-| 1.5.3 | Parse PRIVMSG with tmi-sent-ts timestamp | ⬜ |
+| 1.5.1 | Parse PRIVMSG with tags (mod, sub, vip, broadcaster) | ✅ |
+| 1.5.2 | Parse PRIVMSG without tags | ✅ |
+| 1.5.3 | Parse PRIVMSG with tmi-sent-ts timestamp | ✅ |
 | 1.5.4 | Handle PING → responds with PONG | ⬜ |
-| 1.5.5 | Handle malformed line gracefully (no crash) | ⬜ |
-| 1.5.6 | Handle empty lines gracefully | ⬜ |
+| 1.5.5 | Handle malformed line gracefully (no crash) | ✅ |
+| 1.5.6 | Handle empty lines gracefully | ✅ |
 | 1.5.7 | `sendMessage()` sends correct PRIVMSG format | ⬜ |
-| 1.5.8 | `sendMessage()` returns false when not connected | ⬜ |
+| 1.5.8 | `sendMessage()` returns false when not connected | ✅ |
 
 ### 1.6 TwitchHelixClient (API calls)
 | # | Test | Status |
 |---|------|--------|
-| 1.6.1 | `resolveUserId()` parses response correctly | ⬜ |
-| 1.6.2 | `resolveUserId()` returns null on 404 | ⬜ |
-| 1.6.3 | `fetchStreamStatus()` parses live stream response | ⬜ |
-| 1.6.4 | `fetchStreamStatus()` returns offline when no stream | ⬜ |
-| 1.6.5 | `timeoutUser()` sends correct request body | ⬜ |
-| 1.6.6 | `banUser()` sends correct request body | ⬜ |
-| 1.6.7 | `unbanUser()` sends correct DELETE request | ⬜ |
-| 1.6.8 | `setChatMode()` sends correct PATCH body | ⬜ |
-| 1.6.9 | All methods handle HTTP errors gracefully | ⬜ |
+| 1.6.1 | `resolveUserId()` parses response correctly | ✅ |
+| 1.6.2 | `resolveUserId()` returns null on 404 | ✅ |
+| 1.6.3 | `fetchStreamStatus()` parses live stream response | ✅ |
+| 1.6.4 | `fetchStreamStatus()` returns offline when no stream | ✅ |
+| 1.6.5 | `timeoutUser()` sends correct request body | ✅ |
+| 1.6.6 | `banUser()` sends correct request body | ✅ |
+| 1.6.7 | `unbanUser()` sends correct DELETE request | ✅ |
+| 1.6.8 | `setChatMode()` sends correct PATCH body | ✅ |
+| 1.6.9 | All methods handle HTTP errors gracefully | ✅ |
 
 ### 1.7 ObsController (state management)
 | # | Test | Status |
@@ -124,27 +124,27 @@
 ### 2.2 Dashboard Tab
 | # | Test | Status |
 |---|------|--------|
-| 2.2.1 | Shows stream status (LIVE/OFFLINE/Checking) | ⬜ |
-| 2.2.2 | Shows stream title when available | ⬜ |
-| 2.2.3 | Shows game name and viewer count | ⬜ |
-| 2.2.4 | Shows OBS connection status | ⬜ |
-| 2.2.5 | Shows OBS scene name when connected | ⬜ |
-| 2.2.6 | Shows OBS source chips with enabled/disabled state | ⬜ |
-| 2.2.7 | Shows Twitch connection status | ⬜ |
+| 2.2.1 | Shows stream status (LIVE/OFFLINE/Checking) | ✅ |
+| 2.2.2 | Shows stream title when available | ✅ |
+| 2.2.3 | Shows game name and viewer count | ✅ |
+| 2.2.4 | Shows OBS connection status | ✅ |
+| 2.2.5 | Shows OBS scene name when connected | ✅ |
+| 2.2.6 | Shows OBS source chips with enabled/disabled state | ✅ |
+| 2.2.7 | Shows Twitch connection status | ✅ |
 | 2.2.8 | Reconnect button calls `connectSse()` | ⬜ |
 | 2.2.9 | Refresh button calls `fetchStatus()` | ⬜ |
 | 2.2.10 | Shows recent chat messages | ⬜ |
-| 2.2.11 | Shows "No messages yet" when chat empty | ⬜ |
+| 2.2.11 | Shows "No messages yet" when chat empty | ✅ |
 
 ### 2.3 Chat Tab
 | # | Test | Status |
 |---|------|--------|
 | 2.3.1 | Shows chat messages with badges (mod, sub, vip, broadcaster) | ⬜ |
-| 2.3.2 | Shows "Chat will appear here" when empty | ⬜ |
+| 2.3.2 | Shows "Chat will appear here" when empty | ✅ |
 | 2.3.3 | Send button sends message via provider | ⬜ |
 | 2.3.4 | Text field clears after successful send | ⬜ |
-| 2.3.5 | Moderation toolbar visible when connected | ⬜ |
-| 2.3.6 | Moderation toolbar hidden when disconnected | ⬜ |
+| 2.3.5 | Moderation toolbar visible when connected | ✅ |
+| 2.3.6 | Moderation toolbar hidden when disconnected | ✅ |
 | 2.3.7 | Slow/Emote/Subs toggle chips call `setChatMode()` | ⬜ |
 | 2.3.8 | Clear chat button calls `clearChat()` | ⬜ |
 | 2.3.9 | Long-press message shows moderation bottom sheet | ⬜ |
@@ -155,31 +155,31 @@
 ### 2.4 Settings Tab
 | # | Test | Status |
 |---|------|--------|
-| 2.4.1 | Platform dropdown shows Twitch/YouTube/Kick | ⬜ |
-| 2.4.2 | Twitch Client ID/Secret fields exist | ⬜ |
-| 2.4.3 | Channel Name field exists | ⬜ |
+| 2.4.1 | Platform dropdown shows Twitch/YouTube/Kick | ✅ |
+| 2.4.2 | Twitch Client ID/Secret fields exist | ✅ |
+| 2.4.3 | Channel Name field exists | ✅ |
 | 2.4.4 | "Authorize with Twitch" button visible when not authenticated | ⬜ |
 | 2.4.5 | "Connected to Twitch" shown when authenticated | ⬜ |
 | 2.4.6 | "Disconnect Twitch" button shown when authenticated | ⬜ |
-| 2.4.7 | OBS host/port/password fields exist | ⬜ |
+| 2.4.7 | OBS host/port/password fields exist | ✅ |
 | 2.4.8 | OBS Connect/Disconnect buttons work | ⬜ |
 | 2.4.9 | OBS WebSocket setup guide is displayed | ⬜ |
-| 2.4.10 | AI Interface section shows API endpoints | ⬜ |
+| 2.4.10 | AI Interface section shows API endpoints | ✅ |
 | 2.4.11 | Legacy Bot URL field exists | ⬜ |
 | 2.4.12 | Legacy Connect/Disconnect buttons work | ⬜ |
 
 ### 2.5 Error Banner
 | # | Test | Status |
 |---|------|--------|
-| 2.5.1 | Hidden when no error | ⬜ |
-| 2.5.2 | Shows error message when present | ⬜ |
-| 2.5.3 | Dismiss button clears error | ⬜ |
+| 2.5.1 | Hidden when no error | ✅ |
+| 2.5.2 | Shows error message when present | ✅ |
+| 2.5.3 | Dismiss button clears error | ✅ |
 
 ### 2.6 Connection Indicator
 | # | Test | Status |
 |---|------|--------|
-| 2.6.1 | Shows connected state | ⬜ |
-| 2.6.2 | Shows disconnected state | ⬜ |
+| 2.6.1 | Shows connected state | ✅ |
+| 2.6.2 | Shows disconnected state | ✅ |
 
 ---
 
@@ -206,9 +206,9 @@
 ### 3.3 TwitchPlatform + TwitchAuth
 | # | Test | Status |
 |---|------|--------|
-| 3.3.1 | `connect()` fails gracefully when no tokens saved | ⬜ |
+| 3.3.1 | `connect()` fails gracefully when no tokens saved | ✅ |
 | 3.3.2 | `connect()` succeeds with valid tokens (mock) | ⬜ |
-| 3.3.3 | `disconnect()` cleans up IRC and polling | ⬜ |
+| 3.3.3 | `disconnect()` cleans up IRC and polling | ✅ |
 | 3.3.4 | Chat stream receives messages from IRC | ⬜ |
 | 3.3.5 | Status stream receives updates from Helix poller | ⬜ |
 
@@ -319,7 +319,7 @@
 | Tool | Purpose | Status |
 |------|---------|--------|
 | `flutter_test` | Widget + unit tests | ✅ Built-in |
-| `mockito` / `mocktail` | Mock HTTP, WebSocket, SharedPreferences | ⬜ |
+| `mockito` / `mocktail` | Mock HTTP, WebSocket, SharedPreferences | ✅ |
 | `http_mock_adapter` | Mock HTTP responses for Helix tests | ⬜ |
 | `fake_async` | Test timers, polling, reconnection | ⬜ |
 | `integration_test` | Full app integration tests | ⬜ |
