@@ -60,10 +60,10 @@
 | 1.5.1 | Parse PRIVMSG with tags (mod, sub, vip, broadcaster) | ✅ |
 | 1.5.2 | Parse PRIVMSG without tags | ✅ |
 | 1.5.3 | Parse PRIVMSG with tmi-sent-ts timestamp | ✅ |
-| 1.5.4 | Handle PING → responds with PONG | ⬜ |
+| 1.5.4 | Handle PING → responds with PONG | ✅ |
 | 1.5.5 | Handle malformed line gracefully (no crash) | ✅ |
 | 1.5.6 | Handle empty lines gracefully | ✅ |
-| 1.5.7 | `sendMessage()` sends correct PRIVMSG format | ⬜ |
+| 1.5.7 | `sendMessage()` sends correct PRIVMSG format | ✅ |
 | 1.5.8 | `sendMessage()` returns false when not connected | ✅ |
 
 ### 1.6 TwitchHelixClient (API calls)
@@ -78,6 +78,8 @@
 | 1.6.7 | `unbanUser()` sends correct DELETE request | ✅ |
 | 1.6.8 | `setChatMode()` sends correct PATCH body | ✅ |
 | 1.6.9 | All methods handle HTTP errors gracefully | ✅ |
+| 1.6.10 | `fetchChannelInfo()` parses response correctly | ✅ |
+| 1.6.11 | `fetchChannelInfo()` returns null on 404 | ✅ |
 
 ### 1.7 ObsController (state management)
 | # | Test | Status |
@@ -131,9 +133,9 @@
 | 2.2.5 | Shows OBS scene name when connected | ✅ |
 | 2.2.6 | Shows OBS source chips with enabled/disabled state | ✅ |
 | 2.2.7 | Shows Twitch connection status | ✅ |
-| 2.2.8 | Reconnect button calls `connectSse()` | ⬜ |
-| 2.2.9 | Refresh button calls `fetchStatus()` | ⬜ |
-| 2.2.10 | Shows recent chat messages | ⬜ |
+| 2.2.8 | Reconnect button calls `connectSse()` | ✅ |
+| 2.2.9 | Refresh button calls `fetchStatus()` | ✅ |
+| 2.2.10 | Shows recent chat messages | ✅ |
 | 2.2.11 | Shows "No messages yet" when chat empty | ✅ |
 
 ### 2.3 Chat Tab
@@ -141,7 +143,7 @@
 |---|------|--------|
 | 2.3.1 | Shows chat messages with badges (mod, sub, vip, broadcaster) | ⬜ |
 | 2.3.2 | Shows "Chat will appear here" when empty | ✅ |
-| 2.3.3 | Send button sends message via provider | ⬜ |
+| 2.3.3 | Send button sends message via provider | ✅ |
 | 2.3.4 | Text field clears after successful send | ⬜ |
 | 2.3.5 | Moderation toolbar visible when connected | ✅ |
 | 2.3.6 | Moderation toolbar hidden when disconnected | ✅ |
@@ -165,7 +167,7 @@
 | 2.4.8 | OBS Connect/Disconnect buttons work | ⬜ |
 | 2.4.9 | OBS WebSocket setup guide is displayed | ⬜ |
 | 2.4.10 | AI Interface section shows API endpoints | ✅ |
-| 2.4.11 | Legacy Bot URL field exists | ⬜ |
+| 2.4.11 | Legacy Bot URL field exists | ✅ |
 | 2.4.12 | Legacy Connect/Disconnect buttons work | ⬜ |
 
 ### 2.5 Error Banner
@@ -207,7 +209,7 @@
 | # | Test | Status |
 |---|------|--------|
 | 3.3.1 | `connect()` fails gracefully when no tokens saved | ✅ |
-| 3.3.2 | `connect()` succeeds with valid tokens (mock) | ⬜ |
+| 3.3.2 | `connect()` succeeds with valid tokens (mock) | ✅ |
 | 3.3.3 | `disconnect()` cleans up IRC and polling | ✅ |
 | 3.3.4 | Chat stream receives messages from IRC | ⬜ |
 | 3.3.5 | Status stream receives updates from Helix poller | ⬜ |
