@@ -199,11 +199,11 @@
 ### 3.2 AiServer HTTP Endpoints
 | # | Test | Status |
 |---|------|--------|
-| 3.2.1 | `GET /health` returns 200 with status | ⬜ |
-| 3.2.2 | `GET /state` returns full state JSON | ⬜ |
-| 3.2.3 | `POST /command` with valid command returns success | ⬜ |
-| 3.2.4 | `POST /command` with missing command returns 400 | ⬜ |
-| 3.2.5 | `GET /overlay` returns HTML | ⬜ |
+| 3.2.1 | `GET /health` returns 200 with status | ✅ |
+| 3.2.2 | `GET /state` returns full state JSON | ✅ |
+| 3.2.3 | `POST /command` with valid command returns success | ✅ |
+| 3.2.4 | `POST /command` with missing command returns 400 | ✅ |
+| 3.2.5 | `GET /overlay` returns HTML | ✅ |
 
 ### 3.3 TwitchPlatform + TwitchAuth
 | # | Test | Status |
