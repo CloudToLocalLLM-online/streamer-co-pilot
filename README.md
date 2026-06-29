@@ -1,95 +1,172 @@
 # Streamer Co-Pilot 🎮
 
-A Flutter desktop app that gives an AI (Hermes, Aigent, etc.) the ability to see, hear, and act in a live stream.
+**An AI-powered co-pilot for live streamers. OBS control, chat management, stream awareness — all from one desktop app.**
 
-**This is not a standalone product.** It's a **body** for an AI — sensors (OBS state, chat, stream status) and actuators (switch scenes, toggle cam/mic, send chat, trigger alerts). The AI connects via a simple API, reads the context, and sends commands.
+Your AI agent connects to your stream the same way a human co-host would — it sees what's on screen, reads chat, controls OBS, and talks to your audience. No cloud dependency, no subscription. Runs on your machine.
 
-## Architecture
+---
 
-```
-┌──────────────────────────────────────────┐
-│  Streamer Co-Pilot (Flutter)             │
-│                                          │
-│  ┌──────────┐  ┌──────────┐            │
-│  │ OBS Ctrl │  │ Platform │            │
-│  │ (senses  │  │ (chat +  │            │
-│  │  + acts) │  │  status) │            │
-│  └──────────┘  └──────────┘            │
-│                                          │
-│  ┌──────────────────────────────────┐   │
-│  │  AI Interface (HTTP/WebSocket)   │   │
-│  │  → Hermes/Aigent connects here   │   │
-│  │  → reads state, sends commands   │   │
-│  └──────────────────────────────────┘   │
-└──────────────────────────────────────────┘
-         │
-         ▼
-┌──────────────────────────────────────────┐
-│  Hermes / Aigent (the AI)               │
-│  → "Scene changed, switch back?"        │
-│  → "Chat asking, respond"               │
-│  → "Stream 3h, suggest break"           │
-└──────────────────────────────────────────┘
-```
+## Try It Now
 
-## Features
+🪟 **Windows** — Download the latest installer from [Releases](https://github.com/CloudToLocalLLM-online/streamer-co-pilot/releases/latest).
 
-- **OBS Control** — scenes, sources, cam/mic toggle, audio, recording/streaming
-- **Multi-platform chat** — Twitch, YouTube Live, Kick (extensible)
-- **Stream status** — live/offline, viewers, game, title, uptime
-- **Moderation** — timeout, ban, unban, slow/emote/sub-only modes
-- **Alerts** — donations, follows, subs, raids with visual + TTS
-- **OBS Overlay** — browser source for alerts + chat overlay
-- **AI Interface** — REST API + WebSocket for AI agents to connect
+🐧 **Linux** — AppImage builds from CI. Grab the latest from [Releases](https://github.com/CloudToLocalLLM-online/streamer-co-pilot/releases/latest).
 
-## Project Structure
+**You need an AI agent.** Streamer Co-Pilot is the body — your AI (Hermes, Aigent, OpenClaw, or any agent that speaks HTTP) is the brain. The app exposes a simple API; your agent connects, reads the stream context, and acts.
+
+---
+
+## What It Does
+
+| Capability | What it gives you |
+|-----------|-------------------|
+| **OBS Control** | Switch scenes, toggle cam/mic, start/stop stream and recording — all from your AI |
+| **Chat Awareness** | Your AI reads chat in real time, knows who's talking, who's mod/sub/vip |
+| **Chat Moderation** | Timeout, ban, unban, slow mode, emote-only, sub-only — AI-assisted moderation |
+| **Stream Status** | Live/offline, viewer count, game, title, uptime — your AI knows the context |
+| **OBS Overlay** | Browser source with live status bar + chat overlay for your stream |
+| **AI Interface** | REST API on `localhost:8511` — your agent connects, reads state, sends commands |
+| **Multi-Platform** | Twitch (ready), YouTube Live and Kick (extensible interface) |
+
+---
+
+## How It Works
 
 ```
-streamer-co-pilot/
-├── lib/
-│   ├── main.dart                  # Entry point + overlay mode
-│   ├── providers/                 # State management
-│   │   ├── streamer_bot_provider.dart  # Central state
-│   │   ├── obs_controller.dart         # OBS websocket control
-│   │   └── ai_server.dart              # HTTP server for AI
-│   ├── models/                    # Data models
-│   ├── platforms/                 # Platform abstractions
-│   │   ├── stream_platform.dart       # Abstract interface
-│   │   ├── twitch_platform.dart        # Twitch impl
-│   │   └── ...
-│   ├── services/                  # Low-level clients
-│   │   ├── sse_client.dart            # SSE event stream
-│   │   └── obs_client.dart            # OBS websocket client
-│   ├── tabs/                      # UI tabs
-│   │   ├── dashboard_tab.dart
-│   │   ├── chat_tab.dart
-│   │   └── settings_tab.dart
-│   ├── widgets/                   # Reusable widgets
-│   └── theme/                     # Dark theme
-├── overlay/                       # OBS browser source HTML
-├── packaging/                     # Installers
-└── .github/workflows/             # CI
+┌─────────────────────────────────────────────────────┐
+│              Streamer Co-Pilot (Flutter)              │
+│                                                       │
+│  ┌──────────────────┐   ┌────────────────────────┐  │
+│  │   OBS Controller  │   │   Platform Layer       │  │
+│  │   scenes, sources, │   │   Twitch IRC + Helix  │  │
+│  │   stream, record   │   │   chat, moderation    │  │
+│  └────────┬─────────┘   └───────────┬────────────┘  │
+│           └──────────┬───────────────┘                │
+│                      ▼                                │
+│           ┌──────────────────────┐                    │
+│           │   AI Interface      │                    │
+│           │   localhost:8511    │                    │
+│           │   REST + SSE API    │                    │
+│           └──────────┬───────────┘                    │
+└──────────────────────┼────────────────────────────────┘
+                       │
+                       ▼
+           ┌──────────────────────┐
+           │   Your AI Agent      │
+           │   (Hermes / Aigent   │
+           │    / OpenClaw / ...) │
+           │                      │
+           │  "Scene changed,     │
+           │   switch back?"      │
+           │  "Chat asking about  │
+           │   the game, respond" │
+           │  "Stream 3h,         │
+           │   suggest break"     │
+           └──────────────────────┘
 ```
+
+---
 
 ## Quick Start
 
 ```bash
-flutter pub get
-flutter run -d windows
+# Install
+winget install --id CloudToLocalLLM.StreamerCoPilot  # Windows (coming soon)
+# Or download from Releases
+
+# Launch — the app starts an HTTP server on port 8511
+# Your AI connects to http://localhost:8511 and takes over
 ```
 
-The app starts an embedded HTTP server (port 8511) for the OBS overlay and AI interface.
+### What happens when you launch
+
+1. App starts → embedded HTTP server on `localhost:8511`
+2. OBS auto-connect (if OBS is running with WebSocket enabled)
+3. Twitch auto-connect (if you've authorized)
+4. Your AI polls `/state`, reads the context, sends `/command` actions
+
+---
 
 ## AI API
 
-The app exposes a REST API at `http://localhost:8511`:
+Your agent talks to the app through a simple REST API:
 
-| Endpoint | Method | Description |
+| Endpoint | Method | What it does |
 |----------|--------|-------------|
-| `/state` | GET | Full stream + OBS state snapshot |
-| `/command` | POST | Send a command (switch scene, toggle cam, send chat, etc.) |
-| `/events` | GET | SSE stream of real-time events |
+| `GET /health` | — | Is the app alive? |
+| `GET /state` | — | Full snapshot: OBS state, stream status, recent chat |
+| `POST /command` | JSON | Execute an action (switch scene, toggle cam, send chat, moderate) |
+| `GET /overlay` | — | OBS browser source HTML |
+
+### Commands your AI can send
+
+| Command | Params | Effect |
+|---------|--------|--------|
+| `switch_scene` | `scene` (string) | Switch OBS to a scene |
+| `toggle_source` | `source` (string) | Toggle a source on/off (cam, mic, etc.) |
+| `set_source` | `source`, `enabled` (bool) | Enable or disable a source |
+| `toggle_stream` | — | Start/stop stream |
+| `toggle_recording` | — | Start/stop recording |
+| `send_message` | `message` (string) | Send a chat message |
+| `timeout` | `user` (string) | Timeout a user (300s) |
+| `ban` | `user` (string) | Ban a user |
+
+---
+
+## Platforms
+
+| Platform | Status |
+|----------|--------|
+| 🪟 Windows | ✅ Installer (Inno Setup) |
+| 🐧 Linux | ✅ AppImage + Flatpak |
+| 🍎 macOS | 📋 Planned |
+
+---
+
+## Development
+
+```bash
+git clone https://github.com/CloudToLocalLLM-online/streamer-co-pilot.git
+cd streamer-co-pilot
+flutter pub get
+
+# Run
+flutter run -d windows   # Windows
+flutter run -d linux     # Linux
+
+# Build
+flutter build windows --release
+flutter build linux --release
+
+# Build installer (Windows — requires Inno Setup 6)
+bash scripts/packaging/build_windows_installer.sh
+```
+
+### Test
+
+```bash
+flutter test        # 149 tests, all pass
+flutter analyze     # 0 issues
+```
+
+---
+
+## Documentation
+
+| Guide | What's in it |
+|-------|-------------|
+| [Architecture](docs/ARCHITECTURE.md) | System design and component overview |
+| [AI Interface](docs/AI-INTERFACE.md) | Full API reference for agent integration |
+| [Platform Integration](docs/PLATFORM-INTEGRATION.md) | Twitch OAuth, IRC, Helix setup |
+| [Build Plan](docs/BUILD-PLAN.md) | Development roadmap |
+| [Test Plan](docs/TEST-PLAN.md) | Coverage and test strategy |
+
+---
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+*Streamer Co-Pilot is part of the [CloudToLocalLLM](https://github.com/CloudToLocalLLM-online/CloudToLocalLLM) ecosystem — local-first AI tools that run on your hardware.*
