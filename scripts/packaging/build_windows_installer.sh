@@ -24,6 +24,10 @@ if command -v iscc.exe &>/dev/null; then
   ISCC="iscc.exe"
 elif [ -f "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" ]; then
   ISCC="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+elif [ -f "$LOCALAPPDATA/Programs/Inno Setup 6/ISCC.exe" ]; then
+  ISCC="$LOCALAPPDATA/Programs/Inno Setup 6/ISCC.exe"
+elif [ -f "/c/Users/rightguy/AppData/Local/Programs/Inno Setup 6/ISCC.exe" ]; then
+  ISCC="/c/Users/rightguy/AppData/Local/Programs/Inno Setup 6/ISCC.exe"
 else
   echo "  ✗ ISCC.exe not found. Install Inno Setup 6 from https://jrsoftware.org/isdl.php"
   exit 1
