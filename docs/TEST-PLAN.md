@@ -49,10 +49,10 @@
 | 1.4.2 | `authorizationUrl` includes all required scopes | ✅ |
 | 1.4.3 | `authorizationUrl` includes client_id and redirect_uri | ✅ |
 | 1.4.4 | `isAuthenticated` returns false before exchange | ✅ |
-| 1.4.5 | `isAuthenticated` returns true after successful exchange | ⬜ |
+| 1.4.5 | `isAuthenticated` returns true after successful exchange | ✅ |
 | 1.4.6 | `clearTokens()` resets all state | ✅ |
 | 1.4.7 | `ensureValidToken()` returns false when no token | ✅ |
-| 1.4.8 | `ensureValidToken()` refreshes when expired | ⬜ |
+| 1.4.8 | `ensureValidToken()` refreshes when expired | ✅ |
 
 ### 1.5 TwitchIrcClient (message parsing)
 | # | Test | Status |
@@ -108,8 +108,8 @@
 ### 1.9 SseClient
 | # | Test | Status |
 |---|------|--------|
-| 1.9.1 | Parses SSE event:data format correctly | ⬜ |
-| 1.9.2 | Skips SSE comment lines (heartbeat) | ⬜ |
+| 1.9.1 | Parses SSE event:data format correctly | ✅ |
+| 1.9.2 | Skips SSE comment lines (heartbeat) | ✅ |
 | 1.9.3 | `disconnect()` closes client cleanly | ✅ |
 
 ---
@@ -141,18 +141,18 @@
 ### 2.3 Chat Tab
 | # | Test | Status |
 |---|------|--------|
-| 2.3.1 | Shows chat messages with badges (mod, sub, vip, broadcaster) | ⬜ |
+| 2.3.1 | Shows chat messages with badges (mod, sub, vip, broadcaster) | ✅ |
 | 2.3.2 | Shows "Chat will appear here" when empty | ✅ |
 | 2.3.3 | Send button sends message via provider | ✅ |
-| 2.3.4 | Text field clears after successful send | ⬜ |
+| 2.3.4 | Text field clears after successful send | ✅ |
 | 2.3.5 | Moderation toolbar visible when connected | ✅ |
 | 2.3.6 | Moderation toolbar hidden when disconnected | ✅ |
-| 2.3.7 | Slow/Emote/Subs toggle chips call `setChatMode()` | ⬜ |
-| 2.3.8 | Clear chat button calls `clearChat()` | ⬜ |
-| 2.3.9 | Long-press message shows moderation bottom sheet | ⬜ |
-| 2.3.10 | Timeout button in bottom sheet works | ⬜ |
-| 2.3.11 | Ban button in bottom sheet works | ⬜ |
-| 2.3.12 | Unban button in bottom sheet works | ⬜ |
+| 2.3.7 | Slow/Emote/Subs toggle chips call `setChatMode()` | ✅ |
+| 2.3.8 | Clear chat button calls `clearChat()` | ✅ |
+| 2.3.9 | Long-press message shows moderation bottom sheet | ✅ |
+| 2.3.10 | Timeout button in bottom sheet works | ✅ |
+| 2.3.11 | Ban button in bottom sheet works | ✅ |
+| 2.3.12 | Unban button in bottom sheet works | ✅ |
 
 ### 2.4 Settings Tab
 | # | Test | Status |
@@ -160,15 +160,15 @@
 | 2.4.1 | Platform dropdown shows Twitch/YouTube/Kick | ✅ |
 | 2.4.2 | Twitch Client ID/Secret fields exist | ✅ |
 | 2.4.3 | Channel Name field exists | ✅ |
-| 2.4.4 | "Authorize with Twitch" button visible when not authenticated | ⬜ |
-| 2.4.5 | "Connected to Twitch" shown when authenticated | ⬜ |
-| 2.4.6 | "Disconnect Twitch" button shown when authenticated | ⬜ |
+| 2.4.4 | "Authorize with Twitch" button visible when not authenticated | ✅ |
+| 2.4.5 | "Connected to Twitch" shown when authenticated | ✅ |
+| 2.4.6 | "Disconnect Twitch" button shown when authenticated | ✅ |
 | 2.4.7 | OBS host/port/password fields exist | ✅ |
-| 2.4.8 | OBS Connect/Disconnect buttons work | ⬜ |
-| 2.4.9 | OBS WebSocket setup guide is displayed | ⬜ |
+| 2.4.8 | OBS Connect/Disconnect buttons work | ✅ |
+| 2.4.9 | OBS WebSocket setup guide is displayed | ✅ |
 | 2.4.10 | AI Interface section shows API endpoints | ✅ |
 | 2.4.11 | Legacy Bot URL field exists | ✅ |
-| 2.4.12 | Legacy Connect/Disconnect buttons work | ⬜ |
+| 2.4.12 | Legacy Connect/Disconnect buttons work | ✅ |
 
 ### 2.5 Error Banner
 | # | Test | Status |
@@ -217,12 +217,12 @@
 ### 3.4 StreamerBotProvider + SseClient
 | # | Test | Status |
 |---|------|--------|
-| 3.4.1 | `connectSse()` checks health first | ⬜ |
-| 3.4.2 | SSE events update chat list | ⬜ |
-| 3.4.3 | SSE events update stream status | ⬜ |
-| 3.4.4 | SSE events trigger alerts | ⬜ |
-| 3.4.5 | Auto-reconnect on disconnect | ⬜ |
-| 3.4.6 | Exponential backoff caps at 30s | ⬜ |
+| 3.4.1 | `connectSse()` checks health first | ✅ |
+| 3.4.2 | SSE events update chat list | ✅ |
+| 3.4.3 | SSE events update stream status | ✅ |
+| 3.4.4 | SSE events trigger alerts | ✅ |
+| 3.4.5 | Auto-reconnect on disconnect | ✅ |
+| 3.4.6 | Exponential backoff caps at 30s | ✅ |
 
 ---
 
