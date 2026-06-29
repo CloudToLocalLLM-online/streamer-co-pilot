@@ -5,7 +5,7 @@
 ```
 ┌─────────────────────────────────────────────┐
 │  Manual / Real-World Tests                  │
-│  (OBS, Twitch, AI endpoint)                 │
+│  (OBS, Twitch, agent endpoint)                 │
 ├─────────────────────────────────────────────┤
 │  Integration Tests                          │
 │  (providers + platforms together)           │
@@ -237,10 +237,10 @@
 | 4.1.4 | Dashboard shows correct scene list | ⬜ |
 | 4.1.5 | Dashboard shows correct source list with enabled/disabled | ⬜ |
 | 4.1.6 | Dashboard shows stream/record status | ⬜ |
-| 4.1.7 | Switch scene via AI command | ⬜ |
-| 4.1.8 | Toggle source visibility via AI command | ⬜ |
-| 4.1.9 | Start/stop stream via AI command | ⬜ |
-| 4.1.10 | Start/stop recording via AI command | ⬜ |
+| 4.1.7 | Switch scene via agent command | ⬜ |
+| 4.1.8 | Toggle source visibility via agent command | ⬜ |
+| 4.1.9 | Start/stop stream via agent command | ⬜ |
+| 4.1.10 | Start/stop recording via agent command | ⬜ |
 | 4.1.11 | Disconnect and reconnect works | ⬜ |
 
 ### 4.2 Twitch Connection

@@ -185,7 +185,7 @@ class AgentServer extends ChangeNotifier {
     try {
       final router = shelf_router.Router();
 
-      // GET /state — full state snapshot for the AI
+      // GET /state — full state snapshot for the agent
       router.get('/state', (request) {
         final snapshot = buildSnapshot();
         return shelf.Response.ok(

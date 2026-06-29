@@ -75,7 +75,7 @@ Documented in `PLATFORM-INTEGRATION.md` as future work. The interface is ready â
 - [x] Twitch OAuth callback handler at `/auth/callback`
 - [x] All providers wired in `main.dart`
 
-## Phase 5: AI Integration
+## Phase 5: Agent Integration
 
 - [ ] Hermes skill for streamer-co-pilot
 - [ ] Decision loop: poll `/state`, decide, send `/command`
@@ -100,4 +100,4 @@ Documented in `PLATFORM-INTEGRATION.md` as future work. The interface is ready â
 | IRC rate limits (20/30s) | Medium | Message queue with rate limiter |
 | obs_websocket API changes | Low | Pinned version in pubspec |
 | Scope creep (too many platforms) | Medium | Twitch only for MVP |
-| Hermes integration undefined | Medium | AI interface already defined in docs |
+| Hermes integration undefined | Medium | Agent interface already defined in docs |

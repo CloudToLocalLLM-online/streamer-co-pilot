@@ -2,9 +2,9 @@
 
 ## Philosophy
 
-Streamer Co-Pilot is **not a standalone product.** It's a **body for an AI** — a Flutter desktop app that gives Hermes (or any Aigent) the ability to see, hear, and act in a live stream.
+Streamer Co-Pilot is **not a standalone product.** It's a **body for an agent** — a Flutter desktop app that gives Hermes Agent or OpenClaw the ability to see, hear, and act in a live stream.
 
-The app is the **sensors and actuators**. The AI is the **brain**. They communicate over a local HTTP API.
+The app is the **sensors and actuators**. The agent is the **brain**. They communicate over a local HTTP API.
 
 ## Three Layers
 
@@ -65,7 +65,7 @@ All state lives in `ChangeNotifier` providers (Provider package):
 
 ## Key Design Decisions
 
-- **Flutter-only.** No Python backend. The embedded HTTP server (`shelf`) handles overlay serving and AI communication.
+- **Flutter-only.** No Python backend. The embedded HTTP server (`shelf`) handles overlay serving and agent communication.
 - **Platform-agnostic.** The `StreamPlatform` abstract class defines the contract. Each platform is a separate Dart file implementing that contract.
-- **Local-first.** Everything runs on localhost. No cloud dependency. The AI connects via local HTTP.
+- **Local-first.** Everything runs on localhost. No cloud dependency. The agent connects via local HTTP.
 - **OBS is optional.** The app works without OBS — chat and stream status still function. OBS control is additive.

@@ -1,6 +1,6 @@
 # Streamer Co-Pilot 🎮
 
-**An AI-powered co-pilot for live streamers. OBS control, chat management, stream awareness — all from one desktop app.**
+**An agent-powered co-pilot for live streamers. OBS control, chat management, stream awareness — all from one desktop app.**
 
 Your Hermes Agent or OpenClaw connects to your stream the same way a human co-host would — it sees what's on screen, reads chat, controls OBS, and talks to your audience. No cloud dependency, no subscription. Runs on your machine.
 
@@ -20,10 +20,10 @@ Your Hermes Agent or OpenClaw connects to your stream the same way a human co-ho
 
 | Capability | What it gives you |
 |-----------|-------------------|
-| **OBS Control** | Switch scenes, toggle cam/mic, start/stop stream and recording — all from your AI |
-| **Chat Awareness** | Your AI reads chat in real time, knows who's talking, who's mod/sub/vip |
-| **Chat Moderation** | Timeout, ban, unban, slow mode, emote-only, sub-only — AI-assisted moderation |
-| **Stream Status** | Live/offline, viewer count, game, title, uptime — your AI knows the context |
+| **OBS Control** | Switch scenes, toggle cam/mic, start/stop stream and recording — all from your agent |
+| **Chat Awareness** | Your agent reads chat in real time, knows who's talking, who's mod/sub/vip |
+| **Chat Moderation** | Timeout, ban, unban, slow mode, emote-only, sub-only — agent-assisted moderation |
+| **Stream Status** | Live/offline, viewer count, game, title, uptime — your agent knows the context |
 | **OBS Overlay** | Browser source with live status bar + chat overlay for your stream |
 | **Agent Interface** | REST API on `localhost:8511` — your agent connects, reads state, sends commands |
 | **Multi-Platform** | Twitch (ready), YouTube Live and Kick (extensible interface) |
@@ -86,7 +86,7 @@ winget install --id CloudToLocalLLM.StreamerCoPilot  # Windows (coming soon)
 
 ---
 
-## AI API
+## Agent API
 
 Your agent talks to the app through a simple REST API:
 
@@ -154,6 +154,10 @@ flutter analyze     # 0 issues
 
 | Guide | What's in it |
 |-------|-------------|
+| [Quick Start](docs/user-guide/QUICK-START.md) | Get running in 5 minutes |
+| [User Guide](docs/user-guide/USER-GUIDE.md) | All features explained |
+| [Setup Guide](docs/user-guide/SETUP-GUIDE.md) | Detailed configuration |
+| [Troubleshooting](docs/user-guide/TROUBLESHOOTING.md) | Common issues and fixes |
 | [Architecture](docs/ARCHITECTURE.md) | System design and component overview |
 | [Agent Interface](docs/AGENT-INTERFACE.md) | Full API reference for agent integration |
 | [Platform Integration](docs/PLATFORM-INTEGRATION.md) | Twitch OAuth, IRC, Helix setup |

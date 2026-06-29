@@ -332,7 +332,7 @@ class _SettingsTabState extends State<SettingsTab> {
 
           const Divider(height: 40),
 
-          // ── AI Server Section ──
+          // ── Agent Server Section ──
           const Text(
             'Agent Interface',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -350,7 +350,7 @@ class _SettingsTabState extends State<SettingsTab> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Text(
-              'AI API: http://localhost:8511\n'
+              'Agent API: http://localhost:8511\n'
               'GET  /state     → Full stream + OBS snapshot\n'
               'POST /command   → Execute action\n'
               'GET  /overlay   → OBS browser source',
