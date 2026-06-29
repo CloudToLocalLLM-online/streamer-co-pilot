@@ -75,7 +75,7 @@ jobs:
           echo "" >> release-notes.md
           echo "### Downloads" >> release-notes.md
           echo "- [Windows Installer](dist/windows/StreamerCoPilot-Windows-x64-Setup.exe)" >> release-notes.md
-          echo "- [Linux AppImage](dist/StreamerCoPilot-x86_64.AppImage)" >> release-notes.md
+          echo "- [Linux AppImage](dist/streamer-co-pilot-x86_64.AppImage)" >> release-notes.md
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
