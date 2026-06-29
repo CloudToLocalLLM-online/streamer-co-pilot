@@ -165,7 +165,9 @@ flutter analyze     # 0 issues
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Business Source License 1.1 — see [LICENSE](LICENSE).
+
+© Christopher Maltais. Free for internal business use. Commercial hosting as a service requires a license. Changes to Apache 2.0 on 2030-06-03.
 
 ---
 
