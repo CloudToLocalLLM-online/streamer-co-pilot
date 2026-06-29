@@ -89,7 +89,7 @@
 | 1.7.3 | `disconnect()` resets state to defaults | ✅ |
 | 1.7.4 | `dispose()` cleans up timers | ✅ |
 
-### 1.8 AiServer (command routing)
+### 1.8 AgentServer (command routing)
 | # | Test | Status |
 |---|------|--------|
 | 1.8.1 | `buildSnapshot()` returns correct structure | ✅ |
@@ -166,7 +166,7 @@
 | 2.4.7 | OBS host/port/password fields exist | ✅ |
 | 2.4.8 | OBS Connect/Disconnect buttons work | ✅ |
 | 2.4.9 | OBS WebSocket setup guide is displayed | ✅ |
-| 2.4.10 | AI Interface section shows API endpoints | ✅ |
+| 2.4.10 | Agent Interface section shows API endpoints | ✅ |
 | 2.4.11 | Legacy Bot URL field exists | ✅ |
 | 2.4.12 | Legacy Connect/Disconnect buttons work | ✅ |
 
@@ -191,12 +191,12 @@
 | # | Test | Status |
 |---|------|--------|
 | 3.1.1 | All 4 providers initialize without error | ✅ |
-| 3.1.2 | `_startServices()` wires AiServer to ObsController and TwitchPlatform | ✅ |
-| 3.1.3 | AiServer starts HTTP server on port 8511 | ✅ |
+| 3.1.2 | `_startServices()` wires AgentServer to ObsController and TwitchPlatform | ✅ |
+| 3.1.3 | AgentServer starts HTTP server on port 8511 | ✅ |
 | 3.1.4 | ObsController auto-connects on app launch | ✅ |
 | 3.1.5 | TwitchPlatform auto-connects if tokens exist | ✅ |
 
-### 3.2 AiServer HTTP Endpoints
+### 3.2 AgentServer HTTP Endpoints
 | # | Test | Status |
 |---|------|--------|
 | 3.2.1 | `GET /health` returns 200 with status | ✅ |
@@ -257,7 +257,7 @@
 | 4.2.9 | Stream status polling shows live/offline | ⬜ |
 | 4.2.10 | Disconnect and reconnect works | ⬜ |
 
-### 4.3 AI Interface
+### 4.3 Agent Interface
 | # | Test | Status |
 |---|------|--------|
 | 4.3.1 | `curl http://localhost:8511/health` returns OK | ✅ (tested via integration) |
@@ -294,7 +294,7 @@
 - 1.2 StreamStatus model
 - 1.3 PlatformCredentials
 - 1.7 ObsController state
-- 1.8 AiServer command routing
+- 1.8 AgentServer command routing
 - 1.9 SseClient parsing
 
 ### Phase 2 — Twitch Core
@@ -307,7 +307,7 @@
 
 ### Phase 4 — Integration
 - 3.1 Provider wiring
-- 3.2 AiServer HTTP
+- 3.2 AgentServer HTTP
 - 3.3 TwitchPlatform
 - 3.4 StreamerBotProvider
 

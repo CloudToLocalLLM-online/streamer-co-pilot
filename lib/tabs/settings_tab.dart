@@ -334,12 +334,12 @@ class _SettingsTabState extends State<SettingsTab> {
 
           // ── AI Server Section ──
           const Text(
-            'AI Interface',
+            'Agent Interface',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Hermes/Aigent connects here to read stream state and send commands.',
+            'Hermes Agent or OpenClaw connects here to read stream state and send commands.',
             style: TextStyle(color: Colors.grey),
           ),
           const SizedBox(height: 12),

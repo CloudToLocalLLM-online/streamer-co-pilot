@@ -1,24 +1,24 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:streamer_co_pilot/providers/ai_server.dart';
+import 'package:streamer_co_pilot/providers/agent_server.dart';
 import 'package:streamer_co_pilot/providers/obs_controller.dart';
 
 void main() {
-  group('AiServer HTTP Endpoints (3.2)', () {
-    late AiServer aiServer;
+  group('AgentServer HTTP Endpoints (3.2)', () {
+    late AgentServer agentServer;
     late int port;
 
     setUp(() async {
-      aiServer = AiServer();
+      agentServer = AgentServer();
       port = 18511;
-      final started = await aiServer.start(port: port);
+      final started = await agentServer.start(port: port);
       expect(started, true);
     });
 
     tearDown(() {
-      aiServer.stop();
-      aiServer.dispose();
+      agentServer.stop();
+      agentServer.dispose();
     });
 
     test('3.2.1 — GET /health returns 200 with status', () async {
@@ -120,7 +120,7 @@ void main() {
 
     test('state reflects OBS connection when set', () async {
       final obs = ObsController();
-      aiServer.setObs(obs);
+      agentServer.setObs(obs);
       final client = HttpClient();
       try {
         final request = await client.getUrl(Uri.parse('http://127.0.0.1:$port/state'));
@@ -137,7 +137,7 @@ void main() {
 
     test('health reflects OBS connection when set', () async {
       final obs = ObsController();
-      aiServer.setObs(obs);
+      agentServer.setObs(obs);
       final client = HttpClient();
       try {
         final request = await client.getUrl(Uri.parse('http://127.0.0.1:$port/health'));

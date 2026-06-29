@@ -3,25 +3,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:streamer_co_pilot/providers/streamer_bot_provider.dart';
 import 'package:streamer_co_pilot/providers/obs_controller.dart';
-import 'package:streamer_co_pilot/providers/ai_server.dart';
+import 'package:streamer_co_pilot/providers/agent_server.dart';
 import 'package:streamer_co_pilot/platforms/twitch_platform.dart';
 import 'package:streamer_co_pilot/platforms/stream_platform.dart';
 
 /// Helper that mimics what _startServices() does in _StreamerCoPilotAppState.
 ///
-/// Wires AiServer to ObsController and TwitchPlatform, starts the HTTP server,
+/// Wires AgentServer to ObsController and TwitchPlatform, starts the HTTP server,
 /// attempts OBS auto-connect, and attempts Twitch auto-connect if tokens exist.
 Future<void> startServices({
   required ObsController obs,
   required TwitchPlatform twitch,
-  required AiServer aiServer,
+  required AgentServer agentServer,
   int port = 8511,
 }) async {
-  aiServer.setObs(obs);
-  aiServer.setPlatform(twitch);
+  agentServer.setObs(obs);
+  agentServer.setPlatform(twitch);
 
-  // Start AI server
-  await aiServer.start(port: port);
+  // Start agent server
+  await agentServer.start(port: port);
 
   // Try auto-connect OBS (will fail gracefully — no OBS running in tests)
   await obs.connect();
@@ -43,7 +43,7 @@ void main() {
       StreamerBotProvider? streamerBot;
       ObsController? obs;
       TwitchPlatform? twitch;
-      AiServer? aiServer;
+      AgentServer? agentServer;
 
       expect(() {
         streamerBot = StreamerBotProvider();
@@ -55,40 +55,40 @@ void main() {
         twitch = TwitchPlatform();
       }, returnsNormally);
       expect(() {
-        aiServer = AiServer();
+        agentServer = AgentServer();
       }, returnsNormally);
 
       // Verify all are non-null
       expect(streamerBot, isNotNull);
       expect(obs, isNotNull);
       expect(twitch, isNotNull);
-      expect(aiServer, isNotNull);
+      expect(agentServer, isNotNull);
 
       // Verify initial states
       expect(obs!.state.connected, false);
       expect(twitch!.connected, false);
-      expect(aiServer!.running, false);
+      expect(agentServer!.running, false);
 
       streamerBot!.dispose();
       obs!.dispose();
       twitch!.dispose();
-      aiServer!.dispose();
+      agentServer!.dispose();
     });
 
-    test('3.1.2 — _startServices() wires AiServer to ObsController and TwitchPlatform',
+    test('3.1.2 — _startServices() wires AgentServer to ObsController and TwitchPlatform',
         () async {
       SharedPreferences.setMockInitialValues({});
 
       final obs = ObsController();
       final twitch = TwitchPlatform();
-      final aiServer = AiServer();
+      final agentServer = AgentServer();
 
       // Manually do what _startServices() does
-      aiServer.setObs(obs);
-      aiServer.setPlatform(twitch);
+      agentServer.setObs(obs);
+      agentServer.setPlatform(twitch);
 
       // Verify wiring: buildSnapshot should reflect ObsController state
-      final snapshot = aiServer.buildSnapshot();
+      final snapshot = agentServer.buildSnapshot();
       expect(snapshot.obs.connected, false);
       expect(snapshot.platformConnected, false);
 
@@ -97,23 +97,23 @@ void main() {
 
       obs.dispose();
       twitch.dispose();
-      aiServer.dispose();
+      agentServer.dispose();
     });
 
-    test('3.1.3 — AiServer starts HTTP server on port 8511', () async {
+    test('3.1.3 — AgentServer starts HTTP server on port 8511', () async {
       SharedPreferences.setMockInitialValues({});
 
       final obs = ObsController();
       final twitch = TwitchPlatform();
-      final aiServer = AiServer();
+      final agentServer = AgentServer();
 
-      aiServer.setObs(obs);
-      aiServer.setPlatform(twitch);
+      agentServer.setObs(obs);
+      agentServer.setPlatform(twitch);
 
-      final started = await aiServer.start(port: 8511);
+      final started = await agentServer.start(port: 8511);
       expect(started, true);
-      expect(aiServer.running, true);
-      expect(aiServer.port, 8511);
+      expect(agentServer.running, true);
+      expect(agentServer.port, 8511);
 
       // Verify it's actually serving by making a request
       final client = dart_io.HttpClient();
@@ -127,12 +127,12 @@ void main() {
         client.close();
       }
 
-      aiServer.stop();
-      expect(aiServer.running, false);
+      agentServer.stop();
+      expect(agentServer.running, false);
 
       obs.dispose();
       twitch.dispose();
-      aiServer.dispose();
+      agentServer.dispose();
     });
 
     test('3.1.4 — ObsController auto-connects on app launch (fails gracefully)',
@@ -205,18 +205,18 @@ void main() {
 
       final obs = ObsController();
       final twitch = TwitchPlatform();
-      final aiServer = AiServer();
+      final agentServer = AgentServer();
 
       // Run the full _startServices() equivalent
       await startServices(
         obs: obs,
         twitch: twitch,
-        aiServer: aiServer,
+        agentServer: agentServer,
         port: 18512, // Use non-standard port to avoid conflicts
       );
 
-      // Verify AiServer is running
-      expect(aiServer.running, true);
+      // Verify AgentServer is running
+      expect(agentServer.running, true);
 
       // Verify OBS auto-connect was attempted (failed gracefully)
       expect(obs.state.connected, false);
@@ -225,14 +225,14 @@ void main() {
       expect(twitch.connected, false);
 
       // Verify wiring is intact
-      final snapshot = aiServer.buildSnapshot();
+      final snapshot = agentServer.buildSnapshot();
       expect(snapshot.obs.connected, false);
       expect(snapshot.platformConnected, false);
 
-      aiServer.stop();
+      agentServer.stop();
       obs.dispose();
       twitch.dispose();
-      aiServer.dispose();
+      agentServer.dispose();
     });
   });
 }

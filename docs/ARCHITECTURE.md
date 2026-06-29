@@ -30,7 +30,7 @@ The app is the **sensors and actuators**. The AI is the **brain**. They communic
 │  └──────────────────────────────────────────┘   │
 │                                                  │
 │  ┌──────────────────────────────────────────┐   │
-│  │  AI Server (port 8511)                   │   │
+│  │  Agent Server (port 8511)                   │   │
 │  │  → GET /state — full context snapshot    │   │
 │  │  → POST /command — execute action        │   │
 │  │  → GET /overlay — OBS browser source     │   │
@@ -40,8 +40,8 @@ The app is the **sensors and actuators**. The AI is the **brain**. They communic
          │ obs-websocket                │ HTTP
          ▼                              ▼
 ┌──────────────┐              ┌──────────────────┐
-│  OBS Studio  │              │  Hermes / Aigent │
-│  (streaming) │              │  (the AI brain)  │
+│  OBS Studio  │              │  Hermes / OpenClaw │
+│  (streaming) │              │  (the agent brain)  │
 └──────────────┘              └──────────────────┘
 ```
 
@@ -49,9 +49,9 @@ The app is the **sensors and actuators**. The AI is the **brain**. They communic
 
 1. **OBS Controller** polls OBS every 3s via `obs-websocket` → stores state in `ObsState`
 2. **Platform** connects to Twitch/YouTube/Kick → streams chat messages + status updates
-3. **AI Server** reads both providers → builds a unified state snapshot
+3. **Agent Server** reads both providers → builds a unified state snapshot
 4. **Hermes** polls `GET /state` or receives events → decides what to do
-5. **Hermes** sends `POST /command` → AI Server routes to OBS or Platform
+5. **Hermes** sends `POST /command` → Agent Server routes to OBS or Platform
 
 ## State Management
 
@@ -61,7 +61,7 @@ All state lives in `ChangeNotifier` providers (Provider package):
 |----------|---------------|
 | `StreamerBotProvider` | Legacy — bot URL, chat buffer, commands, alerts. Will be refactored. |
 | `ObsController` | OBS connection, scene/source state, stream/record status |
-| `AiServer` | HTTP server, command routing, state snapshot building |
+| `AgentServer` | HTTP server, command routing, state snapshot building |
 
 ## Key Design Decisions
 

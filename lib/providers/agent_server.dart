@@ -10,14 +10,14 @@ import '../platforms/stream_platform.dart';
 import '../platforms/twitch_platform.dart';
 import '../models/chat_message.dart';
 
-/// Full state snapshot sent to the AI.
-class AiStateSnapshot {
+/// Full state snapshot sent to the agent (Hermes / OpenClaw).
+class AgentStateSnapshot {
   final ObsState obs;
   final bool platformConnected;
   final int chatMessageCount;
   final List<String> recentChatPreview;
 
-  const AiStateSnapshot({
+  const AgentStateSnapshot({
     required this.obs,
     required this.platformConnected,
     this.chatMessageCount = 0,
@@ -47,12 +47,12 @@ class AiStateSnapshot {
   };
 }
 
-/// Result of an AI command.
-class AiCommandResult {
+/// Result of an agent command.
+class AgentCommandResult {
   final bool success;
   final String? message;
 
-  const AiCommandResult({required this.success, this.message});
+  const AgentCommandResult({required this.success, this.message});
 
   Map<String, dynamic> toJson() => {
     'success': success,
@@ -60,10 +60,10 @@ class AiCommandResult {
   };
 }
 
-/// Embedded HTTP server that exposes stream state and accepts AI commands.
+/// Embedded HTTP server that exposes stream state and accepts agent commands.
 ///
-/// Hermes/Aigent connects here to read state and send actions.
-class AiServer extends ChangeNotifier {
+/// Hermes Agent or OpenClaw connects here to read state and send actions.
+class AgentServer extends ChangeNotifier {
   ObsController? _obs;
   StreamPlatform? _platform;
 
@@ -77,7 +77,7 @@ class AiServer extends ChangeNotifier {
   final List<ChatMessage> _chatBuffer = [];
   static const _maxChatBuffer = 100;
 
-  AiServer();
+  AgentServer();
 
   /// Set the OBS controller reference (called after construction).
   void setObs(ObsController obs) {
@@ -97,9 +97,9 @@ class AiServer extends ChangeNotifier {
     }
   }
 
-  /// Build the current state snapshot for the AI.
-  AiStateSnapshot buildSnapshot() {
-    return AiStateSnapshot(
+  /// Build the current state snapshot for the agent.
+  AgentStateSnapshot buildSnapshot() {
+    return AgentStateSnapshot(
       obs: _obs?.state ?? const ObsState(),
       platformConnected: _platform?.connected ?? false,
       chatMessageCount: _chatBuffer.length,
@@ -112,69 +112,69 @@ class AiServer extends ChangeNotifier {
     );
   }
 
-  /// Execute a command from the AI.
-  Future<AiCommandResult> executeCommand(String command, Map<String, dynamic> params) async {
+  /// Execute a command from the agent.
+  Future<AgentCommandResult> executeCommand(String command, Map<String, dynamic> params) async {
     switch (command) {
       // ── OBS commands ──
       case 'switch_scene':
         final name = params['scene'] as String?;
-        if (name == null) return const AiCommandResult(success: false, message: 'Missing scene');
-        if (_obs == null) return const AiCommandResult(success: false, message: 'OBS not connected');
+        if (name == null) return const AgentCommandResult(success: false, message: 'Missing scene');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
         final ok = await _obs!.switchScene(name);
-        return AiCommandResult(success: ok, message: ok ? 'Switched to $name' : 'Failed');
+        return AgentCommandResult(success: ok, message: ok ? 'Switched to $name' : 'Failed');
 
       case 'toggle_source':
         final name = params['source'] as String?;
-        if (name == null) return const AiCommandResult(success: false, message: 'Missing source');
-        if (_obs == null) return const AiCommandResult(success: false, message: 'OBS not connected');
+        if (name == null) return const AgentCommandResult(success: false, message: 'Missing source');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
         final ok = await _obs!.toggleSource(name);
-        return AiCommandResult(success: ok, message: ok ? 'Toggled $name' : 'Failed');
+        return AgentCommandResult(success: ok, message: ok ? 'Toggled $name' : 'Failed');
 
       case 'set_source':
         final name = params['source'] as String?;
         final enabled = params['enabled'] as bool?;
         if (name == null || enabled == null) {
-          return const AiCommandResult(success: false, message: 'Missing source or enabled');
+          return const AgentCommandResult(success: false, message: 'Missing source or enabled');
         }
-        if (_obs == null) return const AiCommandResult(success: false, message: 'OBS not connected');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
         final ok = await _obs!.setSourceEnabled(name, enabled);
-        return AiCommandResult(success: ok, message: ok
+        return AgentCommandResult(success: ok, message: ok
             ? '${enabled ? "Enabled" : "Disabled"} $name'
             : 'Failed');
 
       case 'toggle_stream':
-        if (_obs == null) return const AiCommandResult(success: false, message: 'OBS not connected');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
         final ok = await _obs!.toggleStream();
-        return AiCommandResult(success: ok, message: ok ? 'Toggled stream' : 'Failed');
+        return AgentCommandResult(success: ok, message: ok ? 'Toggled stream' : 'Failed');
 
       case 'toggle_recording':
-        if (_obs == null) return const AiCommandResult(success: false, message: 'OBS not connected');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
         final ok = await _obs!.toggleRecording();
-        return AiCommandResult(success: ok, message: ok ? 'Toggled recording' : 'Failed');
+        return AgentCommandResult(success: ok, message: ok ? 'Toggled recording' : 'Failed');
 
       // ── Chat commands ──
       case 'send_message':
         final text = params['message'] as String?;
         if (text == null || text.isEmpty) {
-          return const AiCommandResult(success: false, message: 'Missing message');
+          return const AgentCommandResult(success: false, message: 'Missing message');
         }
         final ok = await _platform?.sendMessage(text) ?? false;
-        return AiCommandResult(success: ok, message: ok ? 'Sent' : 'Failed');
+        return AgentCommandResult(success: ok, message: ok ? 'Sent' : 'Failed');
 
       case 'timeout':
         final user = params['user'] as String?;
-        if (user == null) return const AiCommandResult(success: false, message: 'Missing user');
+        if (user == null) return const AgentCommandResult(success: false, message: 'Missing user');
         final ok = await _platform?.timeoutUser(user) ?? false;
-        return AiCommandResult(success: ok, message: ok ? 'Timed out $user' : 'Failed');
+        return AgentCommandResult(success: ok, message: ok ? 'Timed out $user' : 'Failed');
 
       case 'ban':
         final user = params['user'] as String?;
-        if (user == null) return const AiCommandResult(success: false, message: 'Missing user');
+        if (user == null) return const AgentCommandResult(success: false, message: 'Missing user');
         final ok = await _platform?.banUser(user) ?? false;
-        return AiCommandResult(success: ok, message: ok ? 'Banned $user' : 'Failed');
+        return AgentCommandResult(success: ok, message: ok ? 'Banned $user' : 'Failed');
 
       default:
-        return AiCommandResult(success: false, message: 'Unknown command: $command');
+        return AgentCommandResult(success: false, message: 'Unknown command: $command');
     }
   }
 
@@ -194,7 +194,7 @@ class AiServer extends ChangeNotifier {
         );
       });
 
-      // POST /command — execute an AI command
+      // POST /command — execute an agent command
       router.post('/command', (request) async {
         final body = jsonDecode(await request.readAsString()) as Map<String, dynamic>;
         final command = body['command'] as String?;
@@ -261,10 +261,10 @@ class AiServer extends ChangeNotifier {
       _server = await shelf_io.serve(router.call, '0.0.0.0', port);
       _running = true;
       notifyListeners();
-      debugPrint('[AiServer] Started on port $port');
+      debugPrint('[AgentServer] Started on port $port');
       return true;
     } catch (e) {
-      debugPrint('[AiServer] Failed to start: $e');
+      debugPrint('[AgentServer] Failed to start: $e');
       _running = false;
       notifyListeners();
       return false;

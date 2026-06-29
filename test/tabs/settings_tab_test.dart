@@ -270,12 +270,12 @@ void main() {
       expect(find.textContaining('3. Check "Enable WebSocket Server"'), findsOneWidget);
     });
 
-    testWidgets('AI Interface section shows API endpoints', (tester) async {
+    testWidgets('Agent Interface section shows API endpoints', (tester) async {
       SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(_buildTestApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('AI Interface'), findsOneWidget);
+      expect(find.text('Agent Interface'), findsOneWidget);
       expect(find.textContaining('http://localhost:8511'), findsOneWidget);
       expect(find.textContaining('/state'), findsOneWidget);
       expect(find.textContaining('/command'), findsOneWidget);

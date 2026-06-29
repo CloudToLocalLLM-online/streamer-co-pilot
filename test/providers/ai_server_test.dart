@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:streamer_co_pilot/providers/ai_server.dart';
+import 'package:streamer_co_pilot/providers/agent_server.dart';
 import 'package:streamer_co_pilot/providers/obs_controller.dart';
 
 void main() {
-  group('AiServer', () {
+  group('AgentServer', () {
     test('buildSnapshot returns correct structure', () {
-      final ai = AiServer();
+      final ai = AgentServer();
       final snapshot = ai.buildSnapshot();
 
       expect(snapshot.obs.connected, false);
@@ -17,7 +17,7 @@ void main() {
     });
 
     test('executeCommand with unknown command returns error', () async {
-      final ai = AiServer();
+      final ai = AgentServer();
       final result = await ai.executeCommand('nonexistent', {});
       expect(result.success, false);
       expect(result.message, contains('Unknown command'));
@@ -25,7 +25,7 @@ void main() {
     });
 
     test('executeCommand with missing params returns error', () async {
-      final ai = AiServer();
+      final ai = AgentServer();
       final result = await ai.executeCommand('switch_scene', {});
       expect(result.success, false);
       expect(result.message, 'Missing scene');
@@ -33,7 +33,7 @@ void main() {
     });
 
     test('executeCommand switch_scene returns error when OBS not connected', () async {
-      final ai = AiServer();
+      final ai = AgentServer();
       final result = await ai.executeCommand('switch_scene', {'scene': 'Test'});
       expect(result.success, false);
       expect(result.message, 'OBS not connected');
@@ -41,7 +41,7 @@ void main() {
     });
 
     test('executeCommand toggle_source returns error when OBS not connected', () async {
-      final ai = AiServer();
+      final ai = AgentServer();
       final result = await ai.executeCommand('toggle_source', {'source': 'Webcam'});
       expect(result.success, false);
       expect(result.message, 'OBS not connected');
@@ -49,7 +49,7 @@ void main() {
     });
 
     test('executeCommand set_source returns error when missing params', () async {
-      final ai = AiServer();
+      final ai = AgentServer();
       final result = await ai.executeCommand('set_source', {'source': 'Webcam'});
       expect(result.success, false);
       expect(result.message, 'Missing source or enabled');
@@ -57,7 +57,7 @@ void main() {
     });
 
     test('executeCommand toggle_stream returns error when OBS not connected', () async {
-      final ai = AiServer();
+      final ai = AgentServer();
       final result = await ai.executeCommand('toggle_stream', {});
       expect(result.success, false);
       expect(result.message, 'OBS not connected');
@@ -65,7 +65,7 @@ void main() {
     });
 
     test('executeCommand toggle_recording returns error when OBS not connected', () async {
-      final ai = AiServer();
+      final ai = AgentServer();
       final result = await ai.executeCommand('toggle_recording', {});
       expect(result.success, false);
       expect(result.message, 'OBS not connected');
@@ -73,14 +73,14 @@ void main() {
     });
 
     test('executeCommand send_message returns error when no platform', () async {
-      final ai = AiServer();
+      final ai = AgentServer();
       final result = await ai.executeCommand('send_message', {'message': 'Hello'});
       expect(result.success, false);
       ai.dispose();
     });
 
     test('executeCommand timeout returns error when missing user', () async {
-      final ai = AiServer();
+      final ai = AgentServer();
       final result = await ai.executeCommand('timeout', {});
       expect(result.success, false);
       expect(result.message, 'Missing user');
@@ -88,21 +88,21 @@ void main() {
     });
 
     test('executeCommand ban returns error when missing user', () async {
-      final ai = AiServer();
+      final ai = AgentServer();
       final result = await ai.executeCommand('ban', {});
       expect(result.success, false);
       expect(result.message, 'Missing user');
       ai.dispose();
     });
 
-    test('AiStateSnapshot toJson produces correct map', () {
+    test('AgentStateSnapshot toJson produces correct map', () {
       const obsState = ObsState(
         connected: true,
         currentScene: 'Game',
         scenes: ['Game', 'BRB'],
         streaming: true,
       );
-      final snapshot = AiStateSnapshot(
+      final snapshot = AgentStateSnapshot(
         obs: obsState,
         platformConnected: true,
         chatMessageCount: 5,
@@ -118,15 +118,15 @@ void main() {
       expect(json['chat']['recent'], hasLength(2));
     });
 
-    test('AiCommandResult toJson produces correct map', () {
-      const result = AiCommandResult(success: true, message: 'Done');
+    test('AgentCommandResult toJson produces correct map', () {
+      const result = AgentCommandResult(success: true, message: 'Done');
       final json = result.toJson();
       expect(json['success'], true);
       expect(json['message'], 'Done');
     });
 
-    test('AiCommandResult with null message', () {
-      const result = AiCommandResult(success: false);
+    test('AgentCommandResult with null message', () {
+      const result = AgentCommandResult(success: false);
       final json = result.toJson();
       expect(json['success'], false);
       expect(json['message'], isNull);

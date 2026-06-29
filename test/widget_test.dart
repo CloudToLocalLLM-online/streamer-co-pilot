@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:streamer_co_pilot/main.dart';
 import 'package:streamer_co_pilot/providers/streamer_bot_provider.dart';
 import 'package:streamer_co_pilot/providers/obs_controller.dart';
-import 'package:streamer_co_pilot/providers/ai_server.dart';
+import 'package:streamer_co_pilot/providers/agent_server.dart';
 import 'package:streamer_co_pilot/platforms/twitch_platform.dart';
 
 void main() {
@@ -15,7 +15,7 @@ void main() {
           ChangeNotifierProvider(create: (_) => StreamerBotProvider()),
           ChangeNotifierProvider(create: (_) => ObsController()),
           ChangeNotifierProvider(create: (_) => TwitchPlatform()),
-          ChangeNotifierProvider(create: (_) => AiServer()),
+          ChangeNotifierProvider(create: (_) => AgentServer()),
         ],
         child: MaterialApp(
           title: 'Streamer Co-Pilot',

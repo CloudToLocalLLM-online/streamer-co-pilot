@@ -25,7 +25,7 @@ Your Hermes Agent or OpenClaw connects to your stream the same way a human co-ho
 | **Chat Moderation** | Timeout, ban, unban, slow mode, emote-only, sub-only — AI-assisted moderation |
 | **Stream Status** | Live/offline, viewer count, game, title, uptime — your AI knows the context |
 | **OBS Overlay** | Browser source with live status bar + chat overlay for your stream |
-| **AI Interface** | REST API on `localhost:8511` — your agent connects, reads state, sends commands |
+| **Agent Interface** | REST API on `localhost:8511` — your agent connects, reads state, sends commands |
 | **Multi-Platform** | Twitch (ready), YouTube Live and Kick (extensible interface) |
 
 ---
@@ -44,7 +44,7 @@ Your Hermes Agent or OpenClaw connects to your stream the same way a human co-ho
 │           └──────────┬───────────────┘                │
 │                      ▼                                │
 │           ┌──────────────────────┐                    │
-│           │   AI Interface      │                    │
+│           │   Agent Interface      │                    │
 │           │   localhost:8511    │                    │
 │           │   REST + SSE API    │                    │
 │           └──────────┬───────────┘                    │
@@ -155,7 +155,7 @@ flutter analyze     # 0 issues
 | Guide | What's in it |
 |-------|-------------|
 | [Architecture](docs/ARCHITECTURE.md) | System design and component overview |
-| [AI Interface](docs/AI-INTERFACE.md) | Full API reference for agent integration |
+| [Agent Interface](docs/AGENT-INTERFACE.md) | Full API reference for agent integration |
 | [Platform Integration](docs/PLATFORM-INTEGRATION.md) | Twitch OAuth, IRC, Helix setup |
 | [Build Plan](docs/BUILD-PLAN.md) | Development roadmap |
 | [Test Plan](docs/TEST-PLAN.md) | Coverage and test strategy |

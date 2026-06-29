@@ -5,7 +5,7 @@ import 'package:window_manager/window_manager.dart';
 import 'theme/app_theme.dart';
 import 'providers/streamer_bot_provider.dart';
 import 'providers/obs_controller.dart';
-import 'providers/ai_server.dart';
+import 'providers/agent_server.dart';
 import 'platforms/twitch_platform.dart';
 import 'platforms/stream_platform.dart';
 import 'widgets/connection_indicator.dart';
@@ -71,9 +71,9 @@ void main() async {
           ChangeNotifierProvider(create: (_) => ObsController()),
           ChangeNotifierProvider(create: (_) => TwitchPlatform()),
           ChangeNotifierProvider(create: (_) {
-            final aiServer = AiServer();
+            final agentServer = AgentServer();
             // Wired after build in _startServices
-            return aiServer;
+            return agentServer;
           }),
         ],
         child: const StreamerCoPilotApp(),
@@ -102,13 +102,13 @@ class _StreamerCoPilotAppState extends State<StreamerCoPilotApp> {
     // Wire providers together
     final obs = context.read<ObsController>();
     final twitch = context.read<TwitchPlatform>();
-    final aiServer = context.read<AiServer>();
+    final agentServer = context.read<AgentServer>();
 
-    aiServer.setObs(obs);
-    aiServer.setPlatform(twitch);
+    agentServer.setObs(obs);
+    agentServer.setPlatform(twitch);
 
-    // Start AI server
-    aiServer.start(port: 8511);
+    // Start agent server
+    agentServer.start(port: 8511);
 
     // Try auto-connect OBS
     obs.connect();

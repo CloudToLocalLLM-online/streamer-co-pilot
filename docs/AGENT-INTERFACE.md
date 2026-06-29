@@ -1,6 +1,6 @@
-# AI Interface — Contract Between App and Hermes
+# Agent Interface — Contract Between App and Agent
 
-The app exposes a local HTTP API on port **8511**. Hermes (or any Aigent) connects here to read stream state and send commands.
+The app exposes a local HTTP API on port **8511**. Hermes Agent or OpenClaw connects here to read stream state and send commands.
 
 ## Base URL
 
@@ -12,7 +12,7 @@ http://localhost:8511
 
 ### `GET /state` — Full Context Snapshot
 
-Returns everything the AI needs to understand the current stream situation.
+Returns everything the agent needs to understand the current stream situation.
 
 ```json
 {
@@ -103,7 +103,7 @@ Returns an HTML page designed for OBS browser source. Shows stream status bar + 
 
 Twitch redirects here after user authorizes the app. Exchanges the code for tokens and auto-connects.
 
-## How Hermes Uses This
+## How Your Agent Uses This
 
 1. **Poll `/state`** every 5-10s to maintain awareness
 2. **Decide** based on context (scene changed? chat activity? stream status?)
@@ -114,4 +114,4 @@ Twitch redirects here after user authorizes the app. Exchanges the code for toke
 
 - **WebSocket endpoint** (`/ws`) for real-time event push instead of polling
 - **Event types:** chat message, scene change, stream start/stop, donation, follow, sub
-- **AI suggestions** — the app can proactively suggest actions based on context
+- **Agent suggestions** — the app can proactively suggest actions based on context
