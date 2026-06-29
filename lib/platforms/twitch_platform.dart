@@ -66,6 +66,11 @@ class TwitchPlatform extends StreamPlatform with ChangeNotifier {
       return false;
     }
 
+    // Load channel name from prefs if not provided
+    if (_channelName == null || _channelName!.isEmpty) {
+      _channelName = await auth.loadChannelName();
+    }
+
     // Ensure token is valid
     final tokenValid = await auth.ensureValidToken();
     if (!tokenValid) {

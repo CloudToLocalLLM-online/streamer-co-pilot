@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:streamer_co_pilot/main.dart';
@@ -16,11 +17,14 @@ void main() {
           ChangeNotifierProvider(create: (_) => TwitchPlatform()),
           ChangeNotifierProvider(create: (_) => AiServer()),
         ],
-        child: const StreamerCoPilotApp(),
+        child: MaterialApp(
+          title: 'Streamer Co-Pilot',
+          home: const MainScreen(),
+        ),
       ),
     );
+    await tester.pump();
 
-    // Should show the three tabs
     expect(find.text('Dashboard'), findsOneWidget);
     expect(find.text('Chat'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);

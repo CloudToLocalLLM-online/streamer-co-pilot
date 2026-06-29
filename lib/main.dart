@@ -114,9 +114,11 @@ class _StreamerCoPilotAppState extends State<StreamerCoPilotApp> {
     obs.connect();
 
     // Try auto-connect Twitch if tokens exist
-    twitch.auth.loadTokens().then((hasTokens) {
+    twitch.auth.loadTokens().then((hasTokens) async {
       if (hasTokens) {
-        twitch.connect(PlatformCredentials(channelName: null));
+        // Load channel name from prefs
+        final channelName = await twitch.auth.loadChannelName();
+        twitch.connect(PlatformCredentials(channelName: channelName));
       }
     });
   }

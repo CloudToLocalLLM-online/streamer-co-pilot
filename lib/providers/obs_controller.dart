@@ -65,7 +65,7 @@ class ObsController extends ChangeNotifier {
     _reconnectTimer?.cancel();
     try {
       _obs = await obs.ObsWebSocket.connect(
-        '$_host:$_port',
+        'ws://$_host:$_port',
         password: _password.isEmpty ? null : _password,
         autoReconnect: _autoReconnect,
       );

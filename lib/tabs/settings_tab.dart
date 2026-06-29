@@ -418,7 +418,7 @@ class _SettingsTabState extends State<SettingsTab> {
     final twitch = context.read<TwitchPlatform>();
     final clientId = _twitchClientIdController.text.trim();
     final clientSecret = _twitchClientSecretController.text.trim();
-    _channelNameController.text.trim();
+    final channelName = _channelNameController.text.trim();
 
     if (clientId.isEmpty || clientSecret.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -428,6 +428,11 @@ class _SettingsTabState extends State<SettingsTab> {
     }
 
     twitch.configure(clientId: clientId, clientSecret: clientSecret);
+
+    // Save credentials and channel name
+    if (channelName.isNotEmpty) {
+      await twitch.auth.saveChannelName(channelName);
+    }
 
     final url = twitch.authorizationUrl;
     if (await canLaunchUrl(Uri.parse(url))) {

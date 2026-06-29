@@ -184,6 +184,8 @@ class TwitchAuth extends ChangeNotifier {
     if (_botId != null) prefs.setString('twitch_bot_id', _botId!);
     if (_broadcasterId != null) prefs.setString('twitch_broadcaster_id', _broadcasterId!);
     if (_tokenExpiry != null) prefs.setString('twitch_token_expiry', _tokenExpiry!.toIso8601String());
+    if (_clientId.isNotEmpty) prefs.setString('twitch_client_id', _clientId);
+    if (_clientSecret.isNotEmpty) prefs.setString('twitch_client_secret', _clientSecret);
   }
 
   Future<bool> loadTokens() async {
@@ -197,11 +199,51 @@ class TwitchAuth extends ChangeNotifier {
       _tokenExpiry = DateTime.tryParse(expiryStr);
     }
 
+    // Load saved credentials
+    final savedClientId = prefs.getString('twitch_client_id');
+    final savedClientSecret = prefs.getString('twitch_client_secret');
+    if (savedClientId != null && savedClientSecret != null) {
+      _clientId = savedClientId;
+      _clientSecret = savedClientSecret;
+    }
+
     if (_accessToken != null) {
       notifyListeners();
       return true;
     }
     return false;
+  }
+
+  /// Save credentials (client ID/secret) to SharedPreferences.
+  Future<void> saveCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('twitch_client_id', _clientId);
+    await prefs.setString('twitch_client_secret', _clientSecret);
+  }
+
+  /// Load saved credentials (client ID/secret) without requiring tokens.
+  Future<bool> loadCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedClientId = prefs.getString('twitch_client_id');
+    final savedClientSecret = prefs.getString('twitch_client_secret');
+    if (savedClientId != null && savedClientSecret != null) {
+      _clientId = savedClientId;
+      _clientSecret = savedClientSecret;
+      return true;
+    }
+    return false;
+  }
+
+  /// Load the saved channel name.
+  Future<String?> loadChannelName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('twitch_channel_name');
+  }
+
+  /// Save the channel name.
+  Future<void> saveChannelName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('twitch_channel_name', name);
   }
 
   Future<void> clearTokens() async {
@@ -216,6 +258,9 @@ class TwitchAuth extends ChangeNotifier {
     await prefs.remove('twitch_bot_id');
     await prefs.remove('twitch_broadcaster_id');
     await prefs.remove('twitch_token_expiry');
+    await prefs.remove('twitch_client_id');
+    await prefs.remove('twitch_client_secret');
+    await prefs.remove('twitch_channel_name');
     notifyListeners();
   }
 }

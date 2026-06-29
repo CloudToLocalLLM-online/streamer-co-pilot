@@ -25,33 +25,33 @@
 ### 1.1 ChatMessage Model
 | # | Test | Status |
 |---|------|--------|
-| 1.1.1 | `ChatMessage.fromJson()` parses all fields correctly | ⬜ |
-| 1.1.2 | `ChatMessage.fromJson()` handles missing fields with defaults | ⬜ |
-| 1.1.3 | `ChatMessage.toJson()` produces correct map | ⬜ |
-| 1.1.4 | Round-trip: toJson → fromJson preserves all values | ⬜ |
+| 1.1.1 | `ChatMessage.fromJson()` parses all fields correctly | ✅ |
+| 1.1.2 | `ChatMessage.fromJson()` handles missing fields with defaults | ✅ |
+| 1.1.3 | `ChatMessage.toJson()` produces correct map | ✅ |
+| 1.1.4 | Round-trip: toJson → fromJson preserves all values | ✅ |
 
 ### 1.2 StreamStatus Model
 | # | Test | Status |
 |---|------|--------|
-| 1.2.1 | Default constructor sets all fields to false/0/empty | ⬜ |
-| 1.2.2 | Named constructor sets fields correctly | ⬜ |
+| 1.2.1 | Default constructor sets all fields to false/0/empty | ✅ |
+| 1.2.2 | Named constructor sets fields correctly | ✅ |
 
 ### 1.3 PlatformCredentials
 | # | Test | Status |
 |---|------|--------|
-| 1.3.1 | Default constructor sets all fields to null | ⬜ |
-| 1.3.2 | Named constructor sets fields correctly | ⬜ |
+| 1.3.1 | Default constructor sets all fields to null | ✅ |
+| 1.3.2 | Named constructor sets fields correctly | ✅ |
 
 ### 1.4 TwitchAuth (OAuth token lifecycle)
 | # | Test | Status |
 |---|------|--------|
-| 1.4.1 | `authorizationUrl` contains correct base URL | ⬜ |
-| 1.4.2 | `authorizationUrl` includes all required scopes | ⬜ |
-| 1.4.3 | `authorizationUrl` includes client_id and redirect_uri | ⬜ |
-| 1.4.4 | `isAuthenticated` returns false before exchange | ⬜ |
+| 1.4.1 | `authorizationUrl` contains correct base URL | ✅ |
+| 1.4.2 | `authorizationUrl` includes all required scopes | ✅ |
+| 1.4.3 | `authorizationUrl` includes client_id and redirect_uri | ✅ |
+| 1.4.4 | `isAuthenticated` returns false before exchange | ✅ |
 | 1.4.5 | `isAuthenticated` returns true after successful exchange | ⬜ |
-| 1.4.6 | `clearTokens()` resets all state | ⬜ |
-| 1.4.7 | `ensureValidToken()` returns false when no token | ⬜ |
+| 1.4.6 | `clearTokens()` resets all state | ✅ |
+| 1.4.7 | `ensureValidToken()` returns false when no token | ✅ |
 | 1.4.8 | `ensureValidToken()` refreshes when expired | ⬜ |
 
 ### 1.5 TwitchIrcClient (message parsing)
@@ -82,33 +82,33 @@
 ### 1.7 ObsController (state management)
 | # | Test | Status |
 |---|------|--------|
-| 1.7.1 | Initial state has `connected=false` | ⬜ |
-| 1.7.2 | `configure()` updates host/port/password | ⬜ |
-| 1.7.3 | `disconnect()` resets state to defaults | ⬜ |
-| 1.7.4 | `dispose()` cleans up timers | ⬜ |
+| 1.7.1 | Initial state has `connected=false` | ✅ |
+| 1.7.2 | `configure()` updates host/port/password | ✅ |
+| 1.7.3 | `disconnect()` resets state to defaults | ✅ |
+| 1.7.4 | `dispose()` cleans up timers | ✅ |
 
 ### 1.8 AiServer (command routing)
 | # | Test | Status |
 |---|------|--------|
-| 1.8.1 | `buildSnapshot()` returns correct structure | ⬜ |
-| 1.8.2 | `executeCommand('switch_scene')` routes correctly | ⬜ |
-| 1.8.3 | `executeCommand('toggle_source')` routes correctly | ⬜ |
-| 1.8.4 | `executeCommand('set_source')` routes correctly | ⬜ |
-| 1.8.5 | `executeCommand('toggle_stream')` routes correctly | ⬜ |
-| 1.8.6 | `executeCommand('toggle_recording')` routes correctly | ⬜ |
-| 1.8.7 | `executeCommand('send_message')` routes correctly | ⬜ |
-| 1.8.8 | `executeCommand('timeout')` routes correctly | ⬜ |
-| 1.8.9 | `executeCommand('ban')` routes correctly | ⬜ |
-| 1.8.10 | `executeCommand('unknown')` returns error | ⬜ |
-| 1.8.11 | `executeCommand` with missing params returns error | ⬜ |
-| 1.8.12 | `executeCommand` when OBS not connected returns error | ⬜ |
+| 1.8.1 | `buildSnapshot()` returns correct structure | ✅ |
+| 1.8.2 | `executeCommand('switch_scene')` routes correctly | ✅ |
+| 1.8.3 | `executeCommand('toggle_source')` routes correctly | ✅ |
+| 1.8.4 | `executeCommand('set_source')` routes correctly | ✅ |
+| 1.8.5 | `executeCommand('toggle_stream')` routes correctly | ✅ |
+| 1.8.6 | `executeCommand('toggle_recording')` routes correctly | ✅ |
+| 1.8.7 | `executeCommand('send_message')` routes correctly | ✅ |
+| 1.8.8 | `executeCommand('timeout')` routes correctly | ✅ |
+| 1.8.9 | `executeCommand('ban')` routes correctly | ✅ |
+| 1.8.10 | `executeCommand('unknown')` returns error | ✅ |
+| 1.8.11 | `executeCommand` with missing params returns error | ✅ |
+| 1.8.12 | `executeCommand` when OBS not connected returns error | ✅ |
 
 ### 1.9 SseClient
 | # | Test | Status |
 |---|------|--------|
 | 1.9.1 | Parses SSE event:data format correctly | ⬜ |
 | 1.9.2 | Skips SSE comment lines (heartbeat) | ⬜ |
-| 1.9.3 | `disconnect()` closes client cleanly | ⬜ |
+| 1.9.3 | `disconnect()` closes client cleanly | ✅ |
 
 ---
 
