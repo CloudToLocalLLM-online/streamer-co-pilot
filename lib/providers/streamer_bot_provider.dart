@@ -14,9 +14,11 @@ class StreamerBotProvider extends ChangeNotifier {
   bool _prefsReady = false;
   String? _pendingUrl;
 
-  StreamerBotProvider() {
+  StreamerBotProvider({SseClient? sseClient, http.Client? httpClient}) {
     _initPrefs();
     _initBuiltInCommands();
+    if (sseClient != null) _sse = sseClient;
+    if (httpClient != null) _http = httpClient;
   }
 
   // ── Persistence ──
@@ -74,7 +76,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<void> fetchCommands() async {
     try {
-      final res = await http
+      final res = await _http
           .get(Uri.parse('$_botUrl/command/list'))
           .timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
@@ -93,7 +95,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<bool> saveCommand(String name, String response) async {
     try {
-      final res = await http
+      final res = await _http
           .post(Uri.parse('$_botUrl/command/save'),
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({
@@ -115,7 +117,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<bool> deleteCommand(String name) async {
     try {
-      final res = await http
+      final res = await _http
           .post(Uri.parse('$_botUrl/command/delete'),
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({'name': name}))
@@ -132,7 +134,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<bool> runCommand(String name) async {
     try {
-      final res = await http
+      final res = await _http
           .post(Uri.parse('$_botUrl/command/run'),
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({'name': name}))
@@ -195,7 +197,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<void> fetchBackendErrors() async {
     try {
-      final res = await http
+      final res = await _http
           .get(Uri.parse('$_botUrl/errors'))
           .timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
@@ -230,6 +232,7 @@ class StreamerBotProvider extends ChangeNotifier {
   SseClient? _sse;
   StreamSubscription<String>? _sseSub;
   Timer? _reconnectTimer;
+  http.Client _http = http.Client();
 
   // ── Exponential backoff state ──
   int _reconnectAttempt = 0;
@@ -239,7 +242,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<bool> checkHealth() async {
     try {
-      final res = await http
+      final res = await _http
           .get(Uri.parse('$_botUrl/health'))
           .timeout(const Duration(seconds: 3));
       _connected = res.statusCode == 200;
@@ -261,7 +264,7 @@ class StreamerBotProvider extends ChangeNotifier {
     _sse?.disconnect();
     await _sseSub?.cancel();
 
-    _sse = SseClient(_botUrl);
+    _sse ??= SseClient(_botUrl);
     try {
       _sseSub = _sse!.connect().listen(_handleSseEvent,
           onError: (e) {
@@ -357,7 +360,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<void> fetchStatus() async {
     try {
-      final res = await http
+      final res = await _http
           .get(Uri.parse('$_botUrl/stream/status'))
           .timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
@@ -375,7 +378,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<void> fetchChat() async {
     try {
-      final res = await http
+      final res = await _http
           .get(Uri.parse('$_botUrl/chat/recent?count=30'))
           .timeout(const Duration(seconds: 3));
       if (res.statusCode == 200) {
@@ -393,7 +396,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<bool> sendMessage(String text) async {
     try {
-      final res = await http
+      final res = await _http
           .post(Uri.parse('$_botUrl/chat/send'),
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({'message': text}))
@@ -409,7 +412,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<bool> timeoutUser(String user, {int duration = 300}) async {
     try {
-      final res = await http
+      final res = await _http
           .post(Uri.parse('$_botUrl/mod/timeout'),
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({'user': user, 'duration': duration}))
@@ -422,7 +425,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<bool> banUser(String user) async {
     try {
-      final res = await http
+      final res = await _http
           .post(Uri.parse('$_botUrl/mod/ban'),
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({'user': user}))
@@ -435,7 +438,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<bool> unbanUser(String user) async {
     try {
-      final res = await http
+      final res = await _http
           .post(Uri.parse('$_botUrl/mod/unban'),
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({'user': user}))
@@ -448,7 +451,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<bool> clearChat() async {
     try {
-      final res = await http
+      final res = await _http
           .post(Uri.parse('$_botUrl/mod/clear'))
           .timeout(const Duration(seconds: 3));
       return res.statusCode == 200;
@@ -459,7 +462,7 @@ class StreamerBotProvider extends ChangeNotifier {
 
   Future<bool> setChatMode(String mode, bool enabled) async {
     try {
-      final res = await http
+      final res = await _http
           .post(Uri.parse('$_botUrl/mod/chatmode'),
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({'mode': mode, 'enabled': enabled}))

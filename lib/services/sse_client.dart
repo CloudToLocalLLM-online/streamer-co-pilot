@@ -9,10 +9,11 @@ import 'package:http/http.dart' as http;
 class SseClient {
   final String url;
   http.Client? _client;
+  final http.Client? _injectedClient;
   Timer? _readTimeoutTimer;
   Timer? _connectTimeoutTimer;
 
-  SseClient(this.url);
+  SseClient(this.url, {http.Client? httpClient}) : _injectedClient = httpClient;
 
   /// How long to wait for the initial HTTP response.
   static const _connectTimeout = Duration(seconds: 15);
@@ -20,7 +21,7 @@ class SseClient {
   static const _readTimeout = Duration(seconds: 30);
 
   Stream<String> connect() async* {
-    _client = http.Client();
+    _client = _injectedClient ?? http.Client();
     final request = http.Request('GET', Uri.parse('$url/events/stream'));
 
     final response = await _client!

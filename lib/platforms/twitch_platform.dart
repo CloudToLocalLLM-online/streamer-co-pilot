@@ -13,7 +13,8 @@ class TwitchPlatform extends StreamPlatform with ChangeNotifier {
   @override
   String get platformName => 'Twitch';
 
-  final TwitchAuth auth = TwitchAuth();
+  TwitchAuth get auth => _auth;
+  final TwitchAuth _auth = TwitchAuth();
   late final TwitchHelixClient _helix;
 
   TwitchIrcClient? _irc;
@@ -29,8 +30,9 @@ class TwitchPlatform extends StreamPlatform with ChangeNotifier {
   String? _broadcasterId;
   String? _moderatorId;
 
-  TwitchPlatform({TwitchHelixClient? helixClient}) {
+  TwitchPlatform({TwitchHelixClient? helixClient, TwitchIrcClient? ircClient}) {
     _helix = helixClient ?? TwitchHelixClient(auth);
+    _irc = ircClient;
     _chatController = StreamController<ChatMessage>.broadcast();
     _statusController = StreamController<StreamStatus>.broadcast();
   }
@@ -92,7 +94,7 @@ class TwitchPlatform extends StreamPlatform with ChangeNotifier {
     final botName = _channelName ?? 'justinfan12345';
     final token = auth.accessToken ?? '';
 
-    _irc = TwitchIrcClient(
+    _irc ??= TwitchIrcClient(
       username: botName,
       oauthToken: token,
       channel: _channelName ?? botName,

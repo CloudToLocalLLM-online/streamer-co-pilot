@@ -190,11 +190,11 @@
 ### 3.1 Provider Wiring
 | # | Test | Status |
 |---|------|--------|
-| 3.1.1 | All 4 providers initialize without error | ⬜ |
-| 3.1.2 | `_startServices()` wires AiServer to ObsController and TwitchPlatform | ⬜ |
-| 3.1.3 | AiServer starts HTTP server on port 8511 | ⬜ |
-| 3.1.4 | ObsController auto-connects on app launch | ⬜ |
-| 3.1.5 | TwitchPlatform auto-connects if tokens exist | ⬜ |
+| 3.1.1 | All 4 providers initialize without error | ✅ |
+| 3.1.2 | `_startServices()` wires AiServer to ObsController and TwitchPlatform | ✅ |
+| 3.1.3 | AiServer starts HTTP server on port 8511 | ✅ |
+| 3.1.4 | ObsController auto-connects on app launch | ✅ |
+| 3.1.5 | TwitchPlatform auto-connects if tokens exist | ✅ |
 
 ### 3.2 AiServer HTTP Endpoints
 | # | Test | Status |
