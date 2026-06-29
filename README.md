@@ -2,7 +2,7 @@
 
 **An AI-powered co-pilot for live streamers. OBS control, chat management, stream awareness — all from one desktop app.**
 
-Your AI agent connects to your stream the same way a human co-host would — it sees what's on screen, reads chat, controls OBS, and talks to your audience. No cloud dependency, no subscription. Runs on your machine.
+Your Hermes Agent or OpenClaw connects to your stream the same way a human co-host would — it sees what's on screen, reads chat, controls OBS, and talks to your audience. No cloud dependency, no subscription. Runs on your machine.
 
 ---
 
@@ -12,7 +12,7 @@ Your AI agent connects to your stream the same way a human co-host would — it 
 
 🐧 **Linux** — AppImage builds from CI. Grab the latest from [Releases](https://github.com/CloudToLocalLLM-online/streamer-co-pilot/releases/latest).
 
-**You need an AI agent.** Streamer Co-Pilot is the body — your AI (Hermes, Aigent, OpenClaw, or any agent that speaks HTTP) is the brain. The app exposes a simple API; your agent connects, reads the stream context, and acts.
+**You need an agent runtime.** Streamer Co-Pilot is the body — [Hermes Agent](https://hermes-agent.nousresearch.com) or [OpenClaw](https://github.com/CloudToLocalLLM-online/CloudToLocalLLM) is the brain. The app exposes a simple API; your agent connects, reads the stream context, and acts.
 
 ---
 
@@ -52,9 +52,8 @@ Your AI agent connects to your stream the same way a human co-host would — it 
                        │
                        ▼
            ┌──────────────────────┐
-           │   Your AI Agent      │
-           │   (Hermes / Aigent   │
-           │    / OpenClaw / ...) │
+           │   Your Agent              │
+           │   (Hermes / OpenClaw)     │
            │                      │
            │  "Scene changed,     │
            │   switch back?"      │
@@ -75,7 +74,7 @@ winget install --id CloudToLocalLLM.StreamerCoPilot  # Windows (coming soon)
 # Or download from Releases
 
 # Launch — the app starts an HTTP server on port 8511
-# Your AI connects to http://localhost:8511 and takes over
+# Your Hermes Agent or OpenClaw connects to http://localhost:8511 and takes over
 ```
 
 ### What happens when you launch
@@ -83,7 +82,7 @@ winget install --id CloudToLocalLLM.StreamerCoPilot  # Windows (coming soon)
 1. App starts → embedded HTTP server on `localhost:8511`
 2. OBS auto-connect (if OBS is running with WebSocket enabled)
 3. Twitch auto-connect (if you've authorized)
-4. Your AI polls `/state`, reads the context, sends `/command` actions
+4. Your agent polls `/state`, reads the context, sends `/command` actions
 
 ---
 
@@ -98,7 +97,7 @@ Your agent talks to the app through a simple REST API:
 | `POST /command` | JSON | Execute an action (switch scene, toggle cam, send chat, moderate) |
 | `GET /overlay` | — | OBS browser source HTML |
 
-### Commands your AI can send
+### Commands your agent can send
 
 | Command | Params | Effect |
 |---------|--------|--------|
@@ -171,4 +170,4 @@ Business Source License 1.1 — see [LICENSE](LICENSE).
 
 ---
 
-*Streamer Co-Pilot is part of the [CloudToLocalLLM](https://github.com/CloudToLocalLLM-online/CloudToLocalLLM) ecosystem — local-first AI tools that run on your hardware.*
+*Streamer Co-Pilot is part of the [CloudToLocalLLM](https://github.com/CloudToLocalLLM-online/CloudToLocalLLM) ecosystem — local-first AI tools for [Hermes Agent](https://hermes-agent.nousresearch.com) and [OpenClaw](https://github.com/CloudToLocalLLM-online/CloudToLocalLLM).*
