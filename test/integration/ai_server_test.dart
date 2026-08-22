@@ -185,5 +185,23 @@ void main() {
         client.close();
       }
     });
+
+    test('3.2.6 — GET /events/stream returns SSE stream', () async {
+      // Connect directly to SSE port (main port + 1)
+      final ssePort = port + 1;
+      final client = HttpClient();
+      try {
+        final request = await client.getUrl(Uri.parse('http://127.0.0.1:$ssePort/events/stream'));
+        final response = await request.close();
+        expect(response.statusCode, 200);
+        expect(response.headers.value('content-type'), contains('text/event-stream'));
+        expect(response.headers.value('cache-control'), 'no-cache');
+        expect(response.headers.value('connection'), 'keep-alive');
+        // Don't try to read the stream - it's infinite. Just verify connection works.
+        client.close(force: true);
+      } finally {
+        // Client already closed above
+      }
+    });
   });
 }

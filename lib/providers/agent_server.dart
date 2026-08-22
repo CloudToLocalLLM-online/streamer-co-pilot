@@ -88,6 +88,7 @@ class AgentServer extends ChangeNotifier {
   StreamPlatform? _platform;
 
   HttpServer? _server;
+  HttpServer? _sseServer;
   int _port = 8511;
   bool _running = false;
   bool get running => _running;
@@ -97,17 +98,38 @@ class AgentServer extends ChangeNotifier {
   final List<ChatMessage> _chatBuffer = [];
   static const _maxChatBuffer = 100;
 
+  // SSE event stream for real-time updates
+  final StreamController<String> _sseController = StreamController<String>.broadcast();
+  StreamSubscription? _platformStatusListener;
+  StreamSubscription? _platformChatListener;
+  VoidCallback? _obsListener;
+
   AgentServer();
 
   /// Set the OBS controller reference (called after construction).
   void setObs(ObsController obs) {
+    if (_obsListener != null && _obs != null) {
+      _obs!.removeListener(_obsListener!);
+    }
     _obs = obs;
+    _obsListener = _emitObsStateEvent;
+    _obs!.addListener(_obsListener!);
+    // Emit initial state for any connected SSE clients
+    _emitObsStateEvent();
   }
 
-  /// Set the platform reference (called after construction).
   void setPlatform(StreamPlatform? platform) {
+    _platformStatusListener?.cancel();
+    _platformChatListener?.cancel();
     _platform = platform;
-    _platform?.chatStream.listen(_onChatMessage);
+    if (_platform != null) {
+      // ignore: unused_local_variable
+      final chatBufferListener = _platform!.chatStream.listen(_onChatMessage);
+      _platformChatListener = _platform!.chatStream.listen(_emitChatEvent);
+      _platformStatusListener = _platform!.statusStream.listen(_emitPlatformStatusEvent);
+      // Emit initial platform status for any connected SSE clients
+      _platform!.fetchStatus().then(_emitPlatformStatusEvent);
+    }
   }
 
   void _onChatMessage(ChatMessage msg) {
@@ -115,6 +137,41 @@ class AgentServer extends ChangeNotifier {
     if (_chatBuffer.length > _maxChatBuffer) {
       _chatBuffer.removeAt(0);
     }
+  }
+
+  void _emitObsStateEvent() {
+    if (_obs == null) return;
+    final snapshot = buildSnapshot();
+    _emitSseEvent('obs_state', snapshot.toJson());
+  }
+
+  void _emitChatEvent(ChatMessage msg) {
+    _emitSseEvent('chat_message', {
+      'user': msg.user,
+      'text': msg.text,
+      'time': msg.time,
+      'is_mod': msg.isMod,
+      'is_sub': msg.isSub,
+      'is_vip': msg.isVip,
+      'is_broadcaster': msg.isBroadcaster,
+      'id': msg.id,
+    });
+  }
+
+  void _emitPlatformStatusEvent(StreamStatus status) {
+    _emitSseEvent('platform_status', {
+      'live': status.live,
+      'viewers': status.viewers,
+      'game': status.game,
+      'title': status.title,
+      'uptime_sec': status.uptimeSec,
+    });
+  }
+
+  void _emitSseEvent(String eventType, Map<String, dynamic> data) {
+    if (!_sseController.hasListener) return;
+    final eventJson = jsonEncode({'event': eventType, 'data': data});
+    _sseController.add('event: $eventType\ndata: $eventJson\n\n');
   }
 
   /// Build the current state snapshot for the agent.
@@ -417,6 +474,19 @@ class AgentServer extends ChangeNotifier {
         );
       });
 
+      // GET /events/stream — Server-Sent Events for real-time state updates
+      // Handled by separate _sseServer on port + 1
+      router.get('/events/stream', (request) {
+        return shelf.Response(
+          HttpStatus.movedTemporarily,
+          headers: {'Location': 'http://${request.requestedUri.host}:${_port + 1}/events/stream'},
+        );
+      });
+
+      // Start SSE server on port + 1
+      _sseServer = await HttpServer.bind('0.0.0.0', _port + 1);
+      _sseServer!.listen(_handleSseRequest);
+
       // GET /overlay — serve the OBS browser source overlay
       router.get('/overlay', (request) {
         return shelf.Response.ok(
@@ -456,7 +526,7 @@ class AgentServer extends ChangeNotifier {
         );
       });
 
-      _server = await shelf_io.serve(router.call, '0.0.0.0', port);
+      _server = await shelf_io.serve(router.call, '0.0.0.0', _port);
       _running = true;
       notifyListeners();
       debugPrint('[AgentServer] Started on port $port');
@@ -469,15 +539,65 @@ class AgentServer extends ChangeNotifier {
     }
   }
 
+  void _handleSseRequest(HttpRequest request) {
+    if (request.uri.path == '/events/stream') {
+      request.response.headers
+        ..set('Content-Type', 'text/event-stream')
+        ..set('Cache-Control', 'no-cache')
+        ..set('Connection', 'keep-alive')
+        ..set('Access-Control-Allow-Origin', '*')
+        ..set('X-Accel-Buffering', 'no');
+
+      // Send initial connection event immediately to establish SSE connection
+      request.response.add(utf8.encode(': connected\n\n'));
+      request.response.flush(); // Non-blocking flush
+
+      final byteController = StreamController<List<int>>(sync: true);
+      final subscription = _sseController.stream.listen(
+        (event) {
+          byteController.add(utf8.encode(event));
+        },
+        onError: byteController.addError,
+        onDone: byteController.close,
+      );
+
+      request.response.done.then((_) {
+        subscription.cancel();
+        byteController.close();
+      });
+
+      final byteSubscription = byteController.stream.listen(
+        request.response.add,
+        onError: request.response.addError,
+        onDone: request.response.close,
+      );
+
+      request.response.done.then((_) {
+        byteSubscription.cancel();
+      });
+    } else {
+      request.response.statusCode = HttpStatus.notFound;
+      request.response.close();
+    }
+  }
+
   void stop() {
     _server?.close(force: true);
     _server = null;
+    _sseServer?.close(force: true);
+    _sseServer = null;
     _running = false;
     notifyListeners();
   }
 
   @override
   void dispose() {
+    if (_obsListener != null && _obs != null) {
+      _obs!.removeListener(_obsListener!);
+    }
+    _platformStatusListener?.cancel();
+    _platformChatListener?.cancel();
+    _sseController.close();
     stop();
     super.dispose();
   }
