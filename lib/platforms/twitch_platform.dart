@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'stream_platform.dart';
 import '../models/chat_message.dart';
+import '../models/channel_event.dart';
 import 'twitch_auth.dart';
 import 'twitch_irc_client.dart';
 import 'twitch_helix_client.dart';
@@ -21,6 +22,7 @@ class TwitchPlatform extends StreamPlatform with ChangeNotifier {
   Timer? _statusPoller;
   StreamController<ChatMessage>? _chatController;
   StreamController<StreamStatus>? _statusController;
+  StreamController<ChannelEvent>? _eventController;
   bool _connected = false;
 
   @override
@@ -35,6 +37,7 @@ class TwitchPlatform extends StreamPlatform with ChangeNotifier {
     _irc = ircClient;
     _chatController = StreamController<ChatMessage>.broadcast();
     _statusController = StreamController<StreamStatus>.broadcast();
+    _eventController = StreamController<ChannelEvent>.broadcast();
   }
 
   @override
@@ -42,6 +45,9 @@ class TwitchPlatform extends StreamPlatform with ChangeNotifier {
 
   @override
   Stream<StreamStatus> get statusStream => _statusController!.stream;
+
+  /// Channel events (subs, raids) surfaced for alerts.
+  Stream<ChannelEvent> get eventStream => _eventController!.stream;
 
   /// Configure Twitch app credentials.
   void configure({
@@ -109,6 +115,11 @@ class TwitchPlatform extends StreamPlatform with ChangeNotifier {
     // Wire IRC messages to our chat stream
     _irc!.messages.listen((msg) {
       _chatController?.add(msg);
+    });
+
+    // Wire IRC USERNOTICE to our event stream
+    _irc!.events.listen((event) {
+      _eventController?.add(event);
     });
 
     // Start polling stream status
@@ -236,6 +247,7 @@ class TwitchPlatform extends StreamPlatform with ChangeNotifier {
   void dispose() {
     disconnect();
     _chatController?.close();
+    _eventController?.close();
     _statusController?.close();
     _helix.dispose();
     super.dispose();

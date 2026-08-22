@@ -9,6 +9,7 @@ import '../providers/obs_controller.dart';
 import '../platforms/stream_platform.dart';
 import '../platforms/twitch_platform.dart';
 import '../models/chat_message.dart';
+import '../models/channel_event.dart';
 
 /// Full state snapshot sent to the agent (Hermes / OpenClaw).
 class AgentStateSnapshot {
@@ -101,6 +102,7 @@ class AgentServer extends ChangeNotifier {
   // SSE event stream for real-time updates
   final StreamController<String> _sseController = StreamController<String>.broadcast();
   StreamSubscription? _platformStatusListener;
+  StreamSubscription? _platformEventListener;
   StreamSubscription? _platformChatListener;
   VoidCallback? _obsListener;
 
@@ -121,12 +123,17 @@ class AgentServer extends ChangeNotifier {
   void setPlatform(StreamPlatform? platform) {
     _platformStatusListener?.cancel();
     _platformChatListener?.cancel();
+    _platformEventListener?.cancel();
     _platform = platform;
     if (_platform != null) {
       // ignore: unused_local_variable
       final chatBufferListener = _platform!.chatStream.listen(_onChatMessage);
       _platformChatListener = _platform!.chatStream.listen(_emitChatEvent);
       _platformStatusListener = _platform!.statusStream.listen(_emitPlatformStatusEvent);
+      final twitch = _platform as TwitchPlatform?;
+      if (twitch != null) {
+        _platformEventListener = twitch.eventStream.listen(_emitChannelEvent);
+      }
       // Emit initial platform status for any connected SSE clients
       _platform!.fetchStatus().then(_emitPlatformStatusEvent);
     }
@@ -166,6 +173,10 @@ class AgentServer extends ChangeNotifier {
       'title': status.title,
       'uptime_sec': status.uptimeSec,
     });
+  }
+
+  void _emitChannelEvent(ChannelEvent event) {
+    _emitSseEvent('channel_event', event.toJson());
   }
 
   void _emitSseEvent(String eventType, Map<String, dynamic> data) {
@@ -646,6 +657,15 @@ const _overlayHtml = '''
   .chat-msg .user { color: #b388ff; font-weight: 600; }
   .chat-msg .text { color: #eee; word-break: break-word; }
   .chat-empty { color: #666; font-size: 13px; text-align: center; padding: 20px; }
+  /* ── Alerts ── */
+  #alert-container { position: fixed; top: 70px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 200; }
+  .alert { padding: 14px 28px; border-radius: 12px; font-size: 22px; font-weight: 700; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); border: 2px solid; animation: alertIn 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28), pulse 2s ease-in-out 0.5s infinite, alertOut 0.6s ease-in forwards 6s; }
+  .alert.sub { color: #9147ff; border-color: #9147ff; box-shadow: 0 0 24px #9147ff66; }
+  .alert.resub { color: #ff9d00; border-color: #ff9d00; box-shadow: 0 0 24px #ff9d0066; }
+  .alert.raid { color: #ff4444; border-color: #ff4444; box-shadow: 0 0 24px #ff444466; }
+  @keyframes alertIn { from { opacity: 0; transform: translateY(-30px) scale(0.8); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes pulse { 50% { transform: scale(1.04); } }
+  @keyframes alertOut { to { opacity: 0; transform: translateY(-20px); } }
 </style>
 </head>
 <body>
@@ -658,6 +678,7 @@ const _overlayHtml = '''
 <div id="chat-container">
   <div id="chat-list"><div class="chat-empty">💬 Chat will appear here...</div></div>
 </div>
+<div id="alert-container"></div>
 <script>
 const API = window.location.origin;
 const chatList = document.getElementById('chat-list');
@@ -679,6 +700,38 @@ async function fetchState() {
 }
 fetchState();
 setInterval(fetchState, 5000);
+
+// ── SSE: real-time alerts + live chat ──
+const alertContainer = document.getElementById('alert-container');
+const SSE = new EventSource(window.location.protocol + '//' + window.location.hostname + ':' + (parseInt(window.location.port) + 1) + '/events/stream');
+
+function showAlert(cls, text) {
+  const el = document.createElement('div');
+  el.className = 'alert ' + cls;
+  el.textContent = text;
+  alertContainer.appendChild(el);
+  setTimeout(() => el.remove(), 7000);
+}
+
+SSE.addEventListener('channel_event', (e) => {
+  try {
+    const ev = JSON.parse(e.data);
+    if (ev.type === 'subscription') showAlert('sub', '⭐ ' + ev.user + ' subscribed!');
+    else if (ev.type === 'resub') showAlert('resub', '🔥 ' + ev.user + ' re-subbed for ' + (ev.count || '?') + ' months!' + (ev.message ? ' — "' + ev.message + '"' : ''));
+    else if (ev.type === 'raid') showAlert('raid', '🚀 ' + ev.user + ' raided with ' + (ev.count || '?') + ' viewers!');
+  } catch (_) {}
+});
+
+SSE.addEventListener('platform_status', (e) => {
+  try {
+    const s = JSON.parse(e.data);
+    statusDot.className = 'status-dot ' + (s.live ? 'live' : 'offline');
+    statusLabel.textContent = s.live ? '🔴 LIVE' : '⚫ OFFLINE';
+    statusLabel.className = s.live ? 'live' : '';
+    viewerCount.textContent = s.viewers != null ? '👥 ' + s.viewers : '';
+    streamTitle.textContent = s.title || '';
+  } catch (_) {}
+});
 </script>
 </body>
 </html>

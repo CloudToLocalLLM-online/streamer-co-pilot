@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/chat_message.dart';
+import '../models/channel_event.dart';
 
 /// Low-level Twitch IRC client.
 ///
@@ -14,6 +15,7 @@ class TwitchIrcClient {
 
   WebSocket? _socket;
   StreamController<ChatMessage>? _messageController;
+  StreamController<ChannelEvent>? _eventController;
   StreamSubscription? _socketSub;
   Timer? _pingTimer;
   bool _connected = false;
@@ -23,12 +25,21 @@ class TwitchIrcClient {
   /// Stream of parsed chat messages.
   late final Stream<ChatMessage> messages;
 
+  /// Stream of channel events (subs, raids) from USERNOTICE lines.
+  late final Stream<ChannelEvent> events;
+
   TwitchIrcClient({
     required this._username,
     required this._oauthToken,
     required this._channel,
   }) {
     messages = _initMessageStream();
+    events = _initEventStream();
+  }
+
+  Stream<ChannelEvent> _initEventStream() {
+    _eventController = StreamController<ChannelEvent>.broadcast();
+    return _eventController!.stream;
   }
 
   Stream<ChatMessage> _initMessageStream() {
@@ -124,6 +135,15 @@ class TwitchIrcClient {
           _messageController!.add(msg);
         }
       }
+
+      // Parse USERNOTICE (subs, resubs, raids)
+      // Format: @badges=...;msg-id=sub;... :user!user@user.tmi.twitch.tv USERNOTICE #channel
+      if (line.contains('USERNOTICE')) {
+        final event = _parseUserNotice(line);
+        if (event != null && _eventController != null && !_eventController!.isClosed) {
+          _eventController!.add(event);
+        }
+      }
     }
   }
 
@@ -211,5 +231,77 @@ class TwitchIrcClient {
   void dispose() {
     disconnect();
     _messageController?.close();
+    _eventController?.close();
+  }
+
+  /// Parse a USERNOTICE line into a ChannelEvent.
+  @visibleForTesting
+  ChannelEvent? parseUserNotice(String line) => _parseUserNotice(line);
+
+  ChannelEvent? _parseUserNotice(String line) {
+    try {
+      String? tags;
+      String rest = line;
+      if (line.startsWith('@')) {
+        final tagEnd = line.indexOf(' ');
+        tags = line.substring(1, tagEnd);
+        rest = line.substring(tagEnd + 1);
+      }
+
+      final userMatch = RegExp(r'^:(\w+)!').firstMatch(rest);
+      if (userMatch == null) return null;
+      final user = userMatch.group(1)!;
+
+      String? msgId;
+      int? count;
+      String? personalMessage;
+      if (tags != null) {
+        for (final tag in tags.split(';')) {
+          final parts = tag.split('=');
+          if (parts.length != 2) continue;
+          switch (parts[0]) {
+            case 'msg-id':
+              msgId = parts[1];
+              break;
+            case 'msg-param-cumulative-months':
+            case 'msg-param-viewerCount':
+              count = int.tryParse(parts[1]);
+              break;
+            case 'system-msg':
+              // Not the user's own message; kept out of alerts.
+              break;
+          }
+        }
+      }
+      // Resub personal message rides after the USERNOTICE prefix as text.
+      final textMatch = RegExp(r'USERNOTICE #[^ ]+ :(.+)$').firstMatch(rest);
+      if (textMatch != null && textMatch.group(1)!.trim().isNotEmpty) {
+        personalMessage = textMatch.group(1)!;
+      }
+
+      switch (msgId) {
+        case 'sub':
+        case 'resub':
+        case 'subgift':
+          return ChannelEvent(
+            type: msgId == 'resub' ? 'resub' : 'subscription',
+            user: user,
+            count: count,
+            message: personalMessage,
+            time: DateTime.now().toString().substring(11, 16),
+          );
+        case 'raid':
+          return ChannelEvent(
+            type: 'raid',
+            user: user,
+            count: count,
+            time: DateTime.now().toString().substring(11, 16),
+          );
+        default:
+          return null; // Ignore uninteresting notice types.
+      }
+    } catch (_) {
+      return null;
+    }
   }
 }

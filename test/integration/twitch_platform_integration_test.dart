@@ -30,6 +30,7 @@ void main() {
     // Stub IRC connect to succeed
     when(() => mockIrc.connect()).thenAnswer((_) async => true);
     when(() => mockIrc.messages).thenAnswer((_) => const Stream.empty());
+    when(() => mockIrc.events).thenAnswer((_) => const Stream.empty());
     when(() => mockIrc.disconnect()).thenReturn(null);
     when(() => mockIrc.sendMessage(any())).thenAnswer((_) async => true);
 
