@@ -311,5 +311,38 @@ void main() {
         expect(result, false);
       });
     });
+
+    group('clearChat()', () {
+      test('sends correct DELETE request', () async {
+        final response = http.Response('', 204);
+
+        when(() => mockHttp.delete(
+              Uri.parse(
+                  'https://api.twitch.tv/helix/chat/ban?broadcaster_id=broad1&moderator_id=mod1'),
+              headers: any(named: 'headers'),
+            )).thenAnswer((_) async => response);
+
+        final result = await client.clearChat('broad1', 'mod1');
+
+        expect(result, true);
+        verify(() => mockHttp.delete(
+              Uri.parse(
+                  'https://api.twitch.tv/helix/chat/ban?broadcaster_id=broad1&moderator_id=mod1'),
+              headers: any(named: 'headers'),
+            )).called(1);
+      });
+
+      test('returns false on HTTP error', () async {
+        when(() => mockHttp.delete(
+              Uri.parse(
+                  'https://api.twitch.tv/helix/chat/ban?broadcaster_id=broad1&moderator_id=mod1'),
+              headers: any(named: 'headers'),
+            )).thenThrow(Exception('Network error'));
+
+        final result = await client.clearChat('broad1', 'mod1');
+
+        expect(result, false);
+      });
+    });
   });
 }
