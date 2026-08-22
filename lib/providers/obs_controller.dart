@@ -197,6 +197,12 @@ class ObsController extends ChangeNotifier {
   Future<void> _loadChannelConfigs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final host = prefs.getString('obs_host');
+      final port = prefs.getInt('obs_port');
+      final password = prefs.getString('obs_password');
+      if (host != null) _host = host;
+      if (port != null) _port = port;
+      if (password != null) _password = password;
       final raw = prefs.getString('obs_channel_configs');
       if (raw == null) return;
       final map = jsonDecode(raw) as Map<String, dynamic>;

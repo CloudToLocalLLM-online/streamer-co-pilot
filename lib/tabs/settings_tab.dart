@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/streamer_bot_provider.dart';
 import '../providers/obs_controller.dart';
@@ -33,6 +34,7 @@ class _SettingsTabState extends State<SettingsTab> {
 
   Future<void> _loadSavedSettings() async {
     final twitch = context.read<TwitchPlatform>();
+    final obs = context.read<ObsController>();
     final hasCreds = await twitch.auth.loadCredentials();
     if (hasCreds) {
       _twitchClientIdController.text = twitch.auth.clientId ?? '';
@@ -41,6 +43,30 @@ class _SettingsTabState extends State<SettingsTab> {
     if (channelName != null) {
       _channelNameController.text = channelName;
     }
+    // Load persisted OBS connection settings
+    final prefs = await SharedPreferences.getInstance();
+    final host = prefs.getString('obs_host');
+    final port = prefs.getInt('obs_port');
+    final password = prefs.getString('obs_password');
+    if (mounted) {
+      setState(() {
+        if (host != null) _obsHostController.text = host;
+        if (port != null) _obsPortController.text = '$port';
+        if (password != null) _obsPasswordController.text = password;
+      });
+      obs.configure(
+        host: _obsHostController.text,
+        port: int.tryParse(_obsPortController.text) ?? 4455,
+        password: _obsPasswordController.text,
+      );
+    }
+  }
+
+  Future<void> _saveObsSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('obs_host', _obsHostController.text);
+    await prefs.setInt('obs_port', int.tryParse(_obsPortController.text) ?? 4455);
+    await prefs.setString('obs_password', _obsPasswordController.text);
   }
 
   void _onProviderChange() {
@@ -275,6 +301,7 @@ class _SettingsTabState extends State<SettingsTab> {
                               port: int.tryParse(_obsPortController.text) ?? 4455,
                               password: _obsPasswordController.text,
                             );
+                            _saveObsSettings();
                             obs.connect();
                           },
                           icon: const Icon(Icons.wifi),
