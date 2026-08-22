@@ -686,22 +686,26 @@ const statusDot = document.querySelector('.status-dot');
 const statusLabel = document.getElementById('status-label');
 const viewerCount = document.getElementById('viewer-count');
 const streamTitle = document.getElementById('stream-title');
-async function fetchState() {
+
+function applyObsState(obs) {
+  if (!obs) return;
+  statusDot.className = 'status-dot ' + (obs.streaming ? 'live' : 'offline');
+  statusLabel.textContent = obs.streaming ? '🔴 LIVE' : '⚫ OFFLINE';
+  statusLabel.className = obs.streaming ? 'live' : '';
+}
+
+// Initial load fallback (before SSE connects)
+async function fetchStateOnce() {
   try {
     const res = await fetch(API + '/state', { signal: AbortSignal.timeout(3000) });
     if (!res.ok) return;
     const data = await res.json();
-    if (data.obs) {
-      statusDot.className = 'status-dot ' + (data.obs.streaming ? 'live' : 'offline');
-      statusLabel.textContent = data.obs.streaming ? '🔴 LIVE' : '⚫ OFFLINE';
-      statusLabel.className = data.obs.streaming ? 'live' : '';
-    }
+    applyObsState(data.obs);
   } catch (_) {}
 }
-fetchState();
-setInterval(fetchState, 5000);
+fetchStateOnce();
 
-// ── SSE: real-time alerts + live chat ──
+// SSE: real-time OBS state + alerts + live chat
 const alertContainer = document.getElementById('alert-container');
 const SSE = new EventSource(window.location.protocol + '//' + window.location.hostname + ':' + (parseInt(window.location.port) + 1) + '/events/stream');
 
@@ -712,6 +716,13 @@ function showAlert(cls, text) {
   alertContainer.appendChild(el);
   setTimeout(() => el.remove(), 7000);
 }
+
+SSE.addEventListener('obs_state', (e) => {
+  try {
+    const obs = JSON.parse(e.data);
+    applyObsState(obs);
+  } catch (_) {}
+});
 
 SSE.addEventListener('channel_event', (e) => {
   try {
