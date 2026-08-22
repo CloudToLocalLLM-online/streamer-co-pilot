@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:streamer_co_pilot/models/chat_message.dart';
 import 'package:streamer_co_pilot/platforms/twitch_irc_client.dart';
 
 void main() {

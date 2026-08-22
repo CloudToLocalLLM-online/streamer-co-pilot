@@ -35,6 +35,26 @@ class AgentStateSnapshot {
       'sources': obs.sources.map((s) => {
         'name': s.name,
         'enabled': s.enabled,
+        'volume_mul': s.volumeMul,
+        'volume_db': s.volumeDb,
+        'muted': s.muted,
+        'audio_balance': s.audioBalance,
+        'audio_sync_offset': s.audioSyncOffset,
+        'audio_monitor_type': s.audioMonitorType,
+        'audio_tracks': s.audioTracks,
+      }).toList(),
+      'audio_channels': obs.audioChannels.map((c) => {
+        'type': c.type.name,
+        'name': c.name,
+        'source_name': c.sourceName,
+        'source_found': c.sourceFound,
+        'volume_mul': c.volumeMul,
+        'volume_db': c.volumeDb,
+        'muted': c.muted,
+        'audio_balance': c.audioBalance,
+        'audio_sync_offset': c.audioSyncOffset,
+        'audio_monitor_type': c.audioMonitorType,
+        'audio_tracks': c.audioTracks,
       }).toList(),
     },
     'platform': {
@@ -151,6 +171,184 @@ class AgentServer extends ChangeNotifier {
         if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
         final ok = await _obs!.toggleRecording();
         return AgentCommandResult(success: ok, message: ok ? 'Toggled recording' : 'Failed');
+
+      // ── Audio commands ──
+      case 'get_source_volume':
+        final volName = params['source'] as String?;
+        if (volName == null) return const AgentCommandResult(success: false, message: 'Missing source');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final vol = await _obs!.getSourceVolume(volName);
+        return AgentCommandResult(success: vol != null, message: vol != null ? '${vol.mul} / ${vol.db} dB' : 'Failed');
+
+      case 'set_source_volume':
+        final volName = params['source'] as String?;
+        final volumeMul = (params['volume'] as num?)?.toDouble();
+        if (volName == null || volumeMul == null) {
+          return const AgentCommandResult(success: false, message: 'Missing source or volume');
+        }
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final volOk = await _obs!.setSourceVolume(volName, volumeMul);
+        return AgentCommandResult(success: volOk, message: volOk ? 'Volume set to $volumeMul' : 'Failed');
+
+      case 'get_source_mute':
+        final muteName = params['source'] as String?;
+        if (muteName == null) return const AgentCommandResult(success: false, message: 'Missing source');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final mute = await _obs!.getSourceMute(muteName);
+        return AgentCommandResult(success: mute != null, message: mute != null ? (mute ? 'muted' : 'unmuted') : 'Failed');
+
+      case 'set_source_mute':
+        final muteName = params['source'] as String?;
+        final muted = params['muted'] as bool?;
+        if (muteName == null || muted == null) {
+          return const AgentCommandResult(success: false, message: 'Missing source or muted');
+        }
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final muteOk = await _obs!.setSourceMute(muteName, muted);
+        return AgentCommandResult(success: muteOk, message: muteOk ? '${muted ? "Muted" : "Unmuted"} $muteName' : 'Failed');
+
+      case 'toggle_source_mute':
+        final tmName = params['source'] as String?;
+        if (tmName == null) return const AgentCommandResult(success: false, message: 'Missing source');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final tmOk = await _obs!.toggleSourceMute(tmName);
+        return AgentCommandResult(success: tmOk, message: tmOk ? 'Toggled mute' : 'Failed');
+
+      case 'get_source_audio_balance':
+        final balName = params['source'] as String?;
+        if (balName == null) return const AgentCommandResult(success: false, message: 'Missing source');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final bal = await _obs!.getSourceAudioBalance(balName);
+        return AgentCommandResult(success: bal != null, message: bal != null ? '$bal' : 'Failed');
+
+      case 'set_source_audio_balance':
+        final balName = params['source'] as String?;
+        final balance = (params['balance'] as num?)?.toDouble();
+        if (balName == null || balance == null) {
+          return const AgentCommandResult(success: false, message: 'Missing source or balance');
+        }
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final balOk = await _obs!.setSourceAudioBalance(balName, balance);
+        return AgentCommandResult(success: balOk, message: balOk ? 'Balance set to $balance' : 'Failed');
+
+      case 'get_source_audio_sync_offset':
+        final syncName = params['source'] as String?;
+        if (syncName == null) return const AgentCommandResult(success: false, message: 'Missing source');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final sync = await _obs!.getSourceAudioSyncOffset(syncName);
+        return AgentCommandResult(success: sync != null, message: sync != null ? '$sync ms' : 'Failed');
+
+      case 'set_source_audio_sync_offset':
+        final syncName = params['source'] as String?;
+        final offsetMs = params['offset_ms'] as int?;
+        if (syncName == null || offsetMs == null) {
+          return const AgentCommandResult(success: false, message: 'Missing source or offset_ms');
+        }
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final syncOk = await _obs!.setSourceAudioSyncOffset(syncName, offsetMs);
+        return AgentCommandResult(success: syncOk, message: syncOk ? 'Sync offset set to $offsetMs ms' : 'Failed');
+
+      case 'get_source_audio_monitor_type':
+        final monName = params['source'] as String?;
+        if (monName == null) return const AgentCommandResult(success: false, message: 'Missing source');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final mon = await _obs!.getSourceAudioMonitorType(monName);
+        return AgentCommandResult(success: mon != null, message: mon != null ? '$mon' : 'Failed');
+
+      case 'set_source_audio_monitor_type':
+        final monName = params['source'] as String?;
+        final monitorType = params['monitor_type'] as int?;
+        if (monName == null || monitorType == null) {
+          return const AgentCommandResult(success: false, message: 'Missing source or monitor_type');
+        }
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final monOk = await _obs!.setSourceAudioMonitorType(monName, monitorType);
+        return AgentCommandResult(success: monOk, message: monOk ? 'Monitor type set to $monitorType' : 'Failed');
+
+      // ── Audio Channel commands (logical channels) ──
+      case 'get_audio_channel_volume':
+        final chVolType = params['channel'] as String?; // 'microphone' or 'music_desktop'
+        if (chVolType == null) return const AgentCommandResult(success: false, message: 'Missing channel');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final chType = chVolType == 'microphone' ? AudioChannelType.microphone : AudioChannelType.musicDesktop;
+        final chVol = await _obs!.getAudioChannelVolume(chType);
+        return AgentCommandResult(success: chVol != null, message: chVol != null ? '${chVol.mul} / ${chVol.db} dB' : 'Channel not found or no source');
+
+      case 'set_audio_channel_volume':
+        final chVolType2 = params['channel'] as String?;
+        final volumeMul = (params['volume'] as num?)?.toDouble();
+        if (chVolType2 == null || volumeMul == null) {
+          return const AgentCommandResult(success: false, message: 'Missing channel or volume');
+        }
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final chType2 = chVolType2 == 'microphone' ? AudioChannelType.microphone : AudioChannelType.musicDesktop;
+        final chVolOk = await _obs!.setAudioChannelVolume(chType2, volumeMul);
+        return AgentCommandResult(success: chVolOk, message: chVolOk ? 'Channel volume set to $volumeMul' : 'Failed');
+
+      case 'get_audio_channel_mute':
+        final chMuteType = params['channel'] as String?;
+        if (chMuteType == null) return const AgentCommandResult(success: false, message: 'Missing channel');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final chMuteTypeEnum = chMuteType == 'microphone' ? AudioChannelType.microphone : AudioChannelType.musicDesktop;
+        final chMute = await _obs!.getAudioChannelMute(chMuteTypeEnum);
+        return AgentCommandResult(success: chMute != null, message: chMute != null ? (chMute ? 'muted' : 'unmuted') : 'Channel not found or no source');
+
+      case 'set_audio_channel_mute':
+        final chMuteType3 = params['channel'] as String?;
+        final muted = params['muted'] as bool?;
+        if (chMuteType3 == null || muted == null) {
+          return const AgentCommandResult(success: false, message: 'Missing channel or muted');
+        }
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final chMuteTypeEnum3 = chMuteType3 == 'microphone' ? AudioChannelType.microphone : AudioChannelType.musicDesktop;
+        final chMuteOk = await _obs!.setAudioChannelMute(chMuteTypeEnum3, muted);
+        return AgentCommandResult(success: chMuteOk, message: chMuteOk ? '${muted ? "Muted" : "Unmuted"} channel' : 'Failed');
+
+      case 'toggle_audio_channel_mute':
+        final chToggleType = params['channel'] as String?;
+        if (chToggleType == null) return const AgentCommandResult(success: false, message: 'Missing channel');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final chToggleTypeEnum = chToggleType == 'microphone' ? AudioChannelType.microphone : AudioChannelType.musicDesktop;
+        final chToggleOk = await _obs!.toggleAudioChannelMute(chToggleTypeEnum);
+        return AgentCommandResult(success: chToggleOk, message: chToggleOk ? 'Toggled channel mute' : 'Failed');
+
+      case 'get_audio_channel_monitor_type':
+        final chMonType = params['channel'] as String?;
+        if (chMonType == null) return const AgentCommandResult(success: false, message: 'Missing channel');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final chMonTypeEnum = chMonType == 'microphone' ? AudioChannelType.microphone : AudioChannelType.musicDesktop;
+        final chMon = await _obs!.getAudioChannelMonitorType(chMonTypeEnum);
+        return AgentCommandResult(success: chMon != null, message: chMon != null ? '$chMon' : 'Channel not found or no source');
+
+      case 'set_audio_channel_monitor_type':
+        final chMonType2 = params['channel'] as String?;
+        final monitorType = params['monitor_type'] as int?;
+        if (chMonType2 == null || monitorType == null) {
+          return const AgentCommandResult(success: false, message: 'Missing channel or monitor_type');
+        }
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final chMonTypeEnum2 = chMonType2 == 'microphone' ? AudioChannelType.microphone : AudioChannelType.musicDesktop;
+        final chMonOk = await _obs!.setAudioChannelMonitorType(chMonTypeEnum2, monitorType);
+        return AgentCommandResult(success: chMonOk, message: chMonOk ? 'Channel monitor type set to $monitorType' : 'Failed');
+
+      case 'set_audio_channel_source':
+        final chSourceType = params['channel'] as String?;
+        final sourceName = params['source'] as String?;
+        if (chSourceType == null || sourceName == null) {
+          return const AgentCommandResult(success: false, message: 'Missing channel or source');
+        }
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final chSourceTypeEnum = chSourceType == 'microphone' ? AudioChannelType.microphone : AudioChannelType.musicDesktop;
+        final chSourceOk = await _obs!.setAudioChannelSource(chSourceTypeEnum, sourceName);
+        return AgentCommandResult(success: chSourceOk, message: chSourceOk ? 'Channel source set to $sourceName' : 'Failed');
+
+      case 'clear_audio_channel_source':
+        final chClearType = params['channel'] as String?;
+        if (chClearType == null) return const AgentCommandResult(success: false, message: 'Missing channel');
+        if (_obs == null) return const AgentCommandResult(success: false, message: 'OBS not connected');
+        final chClearTypeEnum = chClearType == 'microphone' ? AudioChannelType.microphone : AudioChannelType.musicDesktop;
+        final chClearOk = await _obs!.clearAudioChannelSource(chClearTypeEnum);
+        return AgentCommandResult(success: chClearOk, message: chClearOk ? 'Channel source cleared (auto-detect)' : 'Failed');
 
       // ── Chat commands ──
       case 'send_message':
