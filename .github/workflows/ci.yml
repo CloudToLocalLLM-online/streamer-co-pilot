@@ -54,10 +54,17 @@ jobs:
           sudo apt-get install -y -qq clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
       - run: flutter pub get
       - run: flutter build linux --release
+      - name: Build AppImage (verify packaging)
+        run: |
+          OUTPUT_DIR="${GITHUB_WORKSPACE}/packaging/appimage" bash packaging/appimage/build-appimage.sh
       - uses: actions/upload-artifact@v4
         with:
           name: streamer-co-pilot-linux
           path: build/linux/x64/release/bundle/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: streamer-co-pilot-linux-appimage
+          path: packaging/appimage/streamer-co-pilot-*.AppImage
 
   build-windows:
     name: Build (Windows)
