@@ -38,12 +38,19 @@ class AudioChannelConfig {
     sourcePatterns: [r'(?i)desktop', r'(?i)system audio', r'(?i)application audio', r'(?i)game audio', r'(?i)music'],
   );
 
-  AudioChannelConfig copyWith({String? mappedSourceName}) {
+  /// Sentinel to distinguish "not provided" from "explicitly null"
+  static const _unset = Object();
+
+  /// Returns a copy with optional changes. Pass [mappedSourceName] as null to clear it.
+  AudioChannelConfig copyWith({Object? mappedSourceName = _unset}) {
+    final newMapped = mappedSourceName == _unset
+        ? this.mappedSourceName
+        : mappedSourceName as String?;
     return AudioChannelConfig(
       type: type,
       name: name,
       sourcePatterns: sourcePatterns,
-      mappedSourceName: mappedSourceName ?? this.mappedSourceName,
+      mappedSourceName: newMapped,
     );
   }
 }
@@ -653,8 +660,9 @@ class ObsController extends ChangeNotifier {
   // ── Actions ──
 
   Future<bool> switchScene(String name) async {
+    if (_obs == null) return false;
     try {
-      await _obs?.scenes.setCurrentProgramScene(name);
+      await _obs!.scenes.setCurrentProgramScene(name);
       await _refresh();
       return true;
     } catch (_) {
@@ -663,6 +671,7 @@ class ObsController extends ChangeNotifier {
   }
 
   Future<bool> toggleSource(String sourceName) async {
+    if (_obs == null) return false;
     try {
       final scene = _state.currentScene;
       if (scene == null) return false;
@@ -687,6 +696,7 @@ class ObsController extends ChangeNotifier {
   }
 
   Future<bool> setSourceEnabled(String sourceName, bool enabled) async {
+    if (_obs == null) return false;
     try {
       final scene = _state.currentScene;
       if (scene == null) return false;
@@ -711,6 +721,7 @@ class ObsController extends ChangeNotifier {
   }
 
   Future<bool> toggleStream() async {
+    if (_obs == null) return false;
     try {
       if (_state.streaming) {
         await _obs!.stream.stopStream();
@@ -725,6 +736,7 @@ class ObsController extends ChangeNotifier {
   }
 
   Future<bool> toggleRecording() async {
+    if (_obs == null) return false;
     try {
       if (_state.recording) {
         await _obs!.record.stopRecord();
