@@ -12,14 +12,18 @@ import 'stream_platform.dart';
 /// browsers). Status/chatroom lookup: kick.com/api/v2/channels/{slug}
 /// (unofficial, may require browser-like headers; Cloudflare can block
 /// server-side requests from datacenter IPs but usually allows desktop apps).
-/// Sending messages requires Kick's official OAuth API (api.kick.com) —
-/// not implemented yet; sendMessage returns false with an error logged.
+/// Sending messages requires Kick's official OAuth API (api.kick.com,
+/// `chat:write` scope) — pass an accessToken via PlatformCredentials to
+/// enable sendMessage. Without a token, chat stays read-only.
 class KickPlatform extends StreamPlatform with ChangeNotifier {
   final http.Client _http;
   WebSocketChannel? _ws;
   StreamSubscription? _wsSub;
   final _chatController = StreamController<ChatMessage>.broadcast();
   final _statusController = StreamController<StreamStatus>.broadcast();
+
+  String? _accessToken;
+  int? _broadcasterUserId;
 
   @override
   String get platformName => 'Kick';
@@ -71,6 +75,12 @@ class KickPlatform extends StreamPlatform with ChangeNotifier {
     if (slug == null || slug.isEmpty) return false;
     final chatroomId = await fetchChatroomId(slug);
     if (chatroomId == null) return false;
+
+    // Optional OAuth for sending (chat:write scope).
+    _accessToken = (creds.accessToken?.isEmpty ?? true) ? null : creds.accessToken;
+    if (_accessToken != null) {
+      await _resolveBroadcasterId(slug);
+    }
 
     try {
       // Public Pusher app key for kick.com (not a secret).
@@ -155,8 +165,52 @@ class KickPlatform extends StreamPlatform with ChangeNotifier {
   }
 
   @override
-  Future<bool> sendMessage(String text) async =>
-      false; // Requires official OAuth API — see class doc.
+  Future<bool> sendMessage(String text) async {
+    final token = _accessToken;
+    if (token == null) return false; // Read-only without OAuth.
+    final broadcaster = _broadcasterUserId;
+    if (broadcaster == null) return false;
+    try {
+      final res = await _http.post(
+        Uri.parse('https://api.kick.com/public/v1/chat'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'broadcaster_user_id': broadcaster,
+          'content': text,
+          'type': 'user',
+        }),
+      ).timeout(const Duration(seconds: 8));
+      return res.statusCode == 200 || res.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Resolve the broadcaster's numeric user id via the official API
+  /// (needed as a param for chat send).
+  Future<void> _resolveBroadcasterId(String slug) async {
+    try {
+      final res = await _http.get(
+        Uri.parse('https://api.kick.com/public/v1/channels?slug=$slug'),
+        headers: {
+          'Authorization': 'Bearer $_accessToken',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 8));
+      if (res.statusCode != 200) return;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final items = (data['data'] as List?) ?? const [];
+      if (items.isEmpty) return;
+      final item = items.first as Map<String, dynamic>;
+      final id = item['broadcaster_user_id'] ?? item['id'];
+      if (id is int) _broadcasterUserId = id;
+      if (id is String) _broadcasterUserId = int.tryParse(id);
+    } catch (_) {}
+  }
 
   @override
   Future<List<ChatMessage>> fetchRecentChat({int count = 30}) async =>

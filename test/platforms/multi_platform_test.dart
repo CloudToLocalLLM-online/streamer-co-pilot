@@ -143,6 +143,18 @@ void main() {
       expect(kick.parseWsFrameForTest(jsonEncode({'event': 'pusher:ping'})),
           isNull);
     });
+
+    test('sendMessage returns false without OAuth token (read-only)', () async {
+      var called = false;
+      final kick = KickPlatform(
+        httpClient: MockClient((req) async {
+          called = true;
+          return http.Response('{}', 200);
+        }),
+      );
+      expect(await kick.sendMessage('hi'), isFalse);
+      expect(called, isFalse); // No request should even be attempted.
+    });
   });
 
   group('YoutubePlatform', () {

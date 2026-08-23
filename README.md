@@ -42,7 +42,7 @@ Streaming is a juggling act: scenes, chat, moderation, timing — while performi
 | **OBS Overlay** | Browser source: status bar + chat + animated alerts for your stream |
 | **Custom Commands** | `!discord`-style commands managed from the Settings tab, executed by the server |
 | **Agent Interface** | REST + SSE on `localhost:8511` — full state grounding, ~28 commands |
-| **Multi-Platform** | Twitch today; Kick & YouTube via the platform interface (in progress) |
+| **Multi-Platform** | Twitch + Kick + YouTube Live simultaneously — merged chat, broadcast send, per-platform moderation fan-out |
 
 ## How It Works
 
@@ -117,8 +117,9 @@ Full reference: [docs/AGENT-INTERFACE.md](docs/AGENT-INTERFACE.md). Hermes users
 | `toggle_source` / `set_source` | `source`, `enabled?` | Toggle cam/mic/etc. |
 | `toggle_stream` / `toggle_recording` | — | Start/stop stream or recording |
 | `set_volume` / `set_mute` | `channel`, `volume?`/`mute?` | Per-audio-channel control |
-| `send_message` | `message` | Send to chat |
-| `timeout` / `ban` / `unban` | `user`, `duration?` | Moderate |
+| `send_message` | `message` | Send to chat (broadcast to all connected platforms) |
+| `timeout` / `ban` / `unban` | `user`, `duration?` | Moderate (fans out to supporting platforms) |
+| `connect_platform` / `disconnect_platform` | `platform`, `channel?` | Connect/disconnect Twitch, Kick, or YouTube at runtime |
 
 ```bash
 curl http://localhost:8511/state | jq .
@@ -130,9 +131,12 @@ curl -X POST http://localhost:8511/command \
 
 ## Platforms
 
-**Streaming platforms:** Twitch is fully supported (IRC chat, Helix status, OAuth).
-Kick and YouTube Live are next — the codebase already has a clean `StreamPlatform`
-interface they plug into.
+**Streaming platforms:** Twitch (IRC chat, Helix status, OAuth) and Kick
+(websocket chat, no OAuth needed for reading) are fully supported. YouTube Live
+is supported for chat + status via the Data API v3 (OAuth required; moderation
+endpoints not yet wired). All three run simultaneously through
+`MultiPlatformManager` — merged chat streams, broadcast send, moderation
+fan-out to every platform that supports it.
 
 **App platforms:**
 
