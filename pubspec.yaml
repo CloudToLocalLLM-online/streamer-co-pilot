@@ -43,6 +43,7 @@ dependencies:
   shelf_router: ^1.1.4
   shelf_web_socket: ^3.0.0
   url_launcher: ^6.3.2
+  args: ^2.5.0
 
 dev_dependencies:
   flutter_test:
