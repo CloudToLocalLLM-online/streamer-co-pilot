@@ -5,6 +5,7 @@
 //
 // This demonstrates the "poll `/state`, decide, send `/command`" decision loop
 // from the roadmap. Can be used as a reference for Hermes/OpenClaw integration.
+// ignore_for_file: avoid_print
 import 'dart:async';
 import 'dart:io';
 
