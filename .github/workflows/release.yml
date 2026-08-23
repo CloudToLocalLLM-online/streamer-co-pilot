@@ -53,9 +53,29 @@ jobs:
           name: streamer-co-pilot-linux-appimage
           path: packaging/appimage/streamer-co-pilot-*.AppImage
 
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.x
+      - run: flutter pub get
+      - run: flutter build macos --release
+      - name: Build DMG
+        run: |
+          bash packaging/macos/build-dmg.sh ${{ github.ref_name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: streamer-co-pilot-macos-dmg
+          path: StreamerCoPilot-*.dmg
+
   create-release:
     name: Create GitHub Release
-    needs: [build-windows, build-linux]
+    needs: [build-windows, build-linux, build-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -69,6 +89,10 @@ jobs:
         with:
           name: streamer-co-pilot-linux-appimage
           path: dist/
+      - uses: actions/download-artifact@v4
+        with:
+          name: streamer-co-pilot-macos-dmg
+          path: dist/
       - name: Generate Release Notes
         run: |
           echo "## Streamer Co-Pilot ${{ github.ref_name }}" > release-notes.md
@@ -76,6 +100,7 @@ jobs:
           echo "### Downloads" >> release-notes.md
           echo "- [Windows Installer](dist/windows/StreamerCoPilot-Windows-x64-Setup.exe)" >> release-notes.md
           echo "- [Linux AppImage](dist/streamer-co-pilot-x86_64.AppImage)" >> release-notes.md
+          echo "- [macOS DMG](dist/StreamerCoPilot-${{ github.ref_name }}.dmg)" >> release-notes.md
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -83,3 +108,4 @@ jobs:
           files: |
             dist/windows/*.exe
             dist/*.AppImage
+            dist/*.dmg
