@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart' as shelf_router;
+import 'package:shelf_web_socket/shelf_web_socket.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import '../providers/obs_controller.dart';
 import '../platforms/stream_platform.dart';
 import '../platforms/twitch_platform.dart';
@@ -101,6 +103,8 @@ class AgentServer extends ChangeNotifier {
 
   // SSE event stream for real-time updates
   final StreamController<String> _sseController = StreamController<String>.broadcast();
+  // WebSocket clients for real-time updates
+  final List<WebSocketChannel> _wsClients = [];
   StreamSubscription? _platformStatusListener;
   StreamSubscription? _platformEventListener;
   StreamSubscription? _platformChatListener;
@@ -180,10 +184,24 @@ class AgentServer extends ChangeNotifier {
   }
 
   void _emitSseEvent(String eventType, Map<String, dynamic> data) {
-    if (!_sseController.hasListener) return;
-    final eventJson = jsonEncode({'event': eventType, 'data': data});
-    _sseController.add('event: $eventType\ndata: $eventJson\n\n');
-  }
+      if (!_sseController.hasListener && _wsClients.isEmpty) return;
+      final eventJson = jsonEncode({'event': eventType, 'data': data});
+      final sseEvent = 'event: $eventType\ndata: $eventJson\n\n';
+      final wsMessage = jsonEncode({'event': eventType, 'data': data});
+
+      // Broadcast to SSE clients
+      if (_sseController.hasListener) {
+        _sseController.add(sseEvent);
+      }
+
+      // Broadcast to WebSocket clients
+          for (final client in _wsClients) {
+            if (client.closeCode != null) continue;
+            client.sink.add(wsMessage);
+          }
+          // Clean up closed clients
+          _wsClients.removeWhere((c) => c.closeCode != null);
+    }
 
   /// Build the current state snapshot for the agent.
   AgentStateSnapshot buildSnapshot() {
@@ -485,6 +503,35 @@ class AgentServer extends ChangeNotifier {
         );
       });
 
+      // GET /ws — WebSocket for real-time event push
+      router.get(
+        '/ws',
+        webSocketHandler((WebSocketChannel channel, String? protocol) {
+          _wsClients.add(channel);
+          debugPrint('[AgentServer] WebSocket client connected (${_wsClients.length} total)');
+
+          // Send initial state snapshot
+          final snapshot = buildSnapshot();
+          channel.sink.add(jsonEncode({'event': 'state', 'data': snapshot.toJson()}));
+
+          // Listen for messages from client (optional - for future command support over WS)
+          channel.stream.listen(
+            (message) {
+              // Could handle incoming WebSocket commands here
+              debugPrint('[AgentServer] WebSocket message: $message');
+            },
+            onDone: () {
+              _wsClients.remove(channel);
+              debugPrint('[AgentServer] WebSocket client disconnected (${_wsClients.length} total)');
+            },
+            onError: (error) {
+              _wsClients.remove(channel);
+              debugPrint('[AgentServer] WebSocket error: $error');
+            },
+          );
+        }),
+      );
+
       // GET /events/stream — Server-Sent Events for real-time state updates
       // Handled by separate _sseServer on port + 1
       router.get('/events/stream', (request) {
@@ -597,6 +644,11 @@ class AgentServer extends ChangeNotifier {
     _server = null;
     _sseServer?.close(force: true);
     _sseServer = null;
+    // Close all WebSocket connections
+    for (final client in _wsClients) {
+      client.sink.close();
+    }
+    _wsClients.clear();
     _running = false;
     notifyListeners();
   }
