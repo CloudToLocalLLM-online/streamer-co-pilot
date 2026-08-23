@@ -8,7 +8,7 @@ import '../models/chat_message.dart';
 
 /// Central state for the bot connection, stream status, chat, commands, alerts, and errors.
 class StreamerBotProvider extends ChangeNotifier {
-  String _botUrl = 'http://localhost:8510';
+  String _botUrl = 'http://localhost:8511';
   String get botUrl => _botUrl;
   SharedPreferences? _prefs;
   bool _prefsReady = false;
@@ -294,19 +294,19 @@ class StreamerBotProvider extends ChangeNotifier {
       try {
         final data = jsonDecode(parts[1]);
         switch (eventType) {
-          case 'status':
-            _streamStatus = data['status'] ?? _streamStatus;
+          case 'platform_status':
+            _streamStatus = data['live'] == true ? 'live' : 'offline';
             _title = data['title'] ?? _title;
             _game = data['game'] ?? _game;
             _viewers = data['viewers'] ?? _viewers;
             notifyListeners();
             break;
-          case 'alert':
+          case 'channel_event':
             _alerts.insert(0, Map<String, dynamic>.from(data));
             if (_alerts.length > 50) _alerts = _alerts.sublist(0, 50);
             _showAlert(data);
             break;
-          case 'chat':
+          case 'chat_message':
             _chat.insert(0, ChatMessage.fromJson(Map<String, dynamic>.from(data)));
             if (_chat.length > 200) _chat = _chat.sublist(0, 200);
             notifyListeners();

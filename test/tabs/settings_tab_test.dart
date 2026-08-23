@@ -276,7 +276,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Agent Interface'), findsOneWidget);
-      expect(find.textContaining('http://localhost:8511'), findsOneWidget);
+      expect(find.textContaining('http://localhost:8511'), findsWidgets);
       expect(find.textContaining('/state'), findsOneWidget);
       expect(find.textContaining('/command'), findsOneWidget);
       expect(find.textContaining('/overlay'), findsOneWidget);

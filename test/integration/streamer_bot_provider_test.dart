@@ -28,7 +28,7 @@ void main() {
     final healthResponse = MockResponse();
     when(() => healthResponse.statusCode).thenReturn(200);
     when(() => mockHttp.get(
-          Uri.parse('http://localhost:8510/health'),
+          Uri.parse('http://localhost:8511/health'),
         )).thenAnswer((_) async => healthResponse);
 
     // Stub fetchStatus, fetchChat, fetchCommands (called by connectSse)
@@ -36,21 +36,21 @@ void main() {
     when(() => statusResponse.statusCode).thenReturn(200);
     when(() => statusResponse.body).thenReturn('{}');
     when(() => mockHttp.get(
-          Uri.parse('http://localhost:8510/stream/status'),
+          Uri.parse('http://localhost:8511/stream/status'),
         )).thenAnswer((_) async => statusResponse);
 
     final chatResponse = MockResponse();
     when(() => chatResponse.statusCode).thenReturn(200);
     when(() => chatResponse.body).thenReturn('{"messages": []}');
     when(() => mockHttp.get(
-          Uri.parse('http://localhost:8510/chat/recent?count=30'),
+          Uri.parse('http://localhost:8511/chat/recent?count=30'),
         )).thenAnswer((_) async => chatResponse);
 
     final commandsResponse = MockResponse();
     when(() => commandsResponse.statusCode).thenReturn(200);
     when(() => commandsResponse.body).thenReturn('{"commands": []}');
     when(() => mockHttp.get(
-          Uri.parse('http://localhost:8510/command/list'),
+          Uri.parse('http://localhost:8511/command/list'),
         )).thenAnswer((_) async => commandsResponse);
 
     // Stub error poller
@@ -58,7 +58,7 @@ void main() {
     when(() => errorsResponse.statusCode).thenReturn(200);
     when(() => errorsResponse.body).thenReturn('{"errors": []}');
     when(() => mockHttp.get(
-          Uri.parse('http://localhost:8510/errors'),
+          Uri.parse('http://localhost:8511/errors'),
         )).thenAnswer((_) async => errorsResponse);
 
     // Default: SSE stream is empty
@@ -84,7 +84,7 @@ void main() {
         expect(result, true);
         expect(provider.connected, true);
         verify(() => mockHttp.get(
-              Uri.parse('http://localhost:8510/health'),
+              Uri.parse('http://localhost:8511/health'),
             )).called(1);
       });
 
@@ -93,7 +93,7 @@ void main() {
         final healthResponse = MockResponse();
         when(() => healthResponse.statusCode).thenReturn(500);
         when(() => mockHttp.get(
-              Uri.parse('http://localhost:8510/health'),
+              Uri.parse('http://localhost:8511/health'),
             )).thenAnswer((_) async => healthResponse);
 
         final result = await provider.connectSse();
@@ -104,7 +104,7 @@ void main() {
 
       test('returns false when health check throws', () async {
         when(() => mockHttp.get(
-              Uri.parse('http://localhost:8510/health'),
+              Uri.parse('http://localhost:8511/health'),
             )).thenThrow(Exception('Connection refused'));
 
         final result = await provider.connectSse();
@@ -124,7 +124,7 @@ void main() {
 
         // Send a chat event
         sseController.add(
-          'chat\x00${jsonEncode({
+          'chat_message\x00${jsonEncode({
             'user': 'testuser',
             'text': 'Hello from SSE!',
             'time': '12:34',
@@ -154,8 +154,8 @@ void main() {
 
         // Send a status event
         sseController.add(
-          'status\x00${jsonEncode({
-            'status': 'live',
+          'platform_status\x00${jsonEncode({
+            'live': true,
             'title': 'My Awesome Stream',
             'game': 'Just Chatting',
             'viewers': 42,
@@ -181,7 +181,7 @@ void main() {
 
         // Send an alert event
         sseController.add(
-          'alert\x00${jsonEncode({
+          'channel_event\x00${jsonEncode({
             'type': 'follow',
             'user': 'newfollower',
             'message': 'Thanks for the follow!',
@@ -240,7 +240,7 @@ void main() {
         final healthResponse = MockResponse();
         when(() => healthResponse.statusCode).thenReturn(200);
         when(() => mockHttp.get(
-              Uri.parse('http://localhost:8510/health'),
+              Uri.parse('http://localhost:8511/health'),
             )).thenAnswer((_) async => healthResponse);
 
         // SSE stream that errors immediately
@@ -265,7 +265,7 @@ void main() {
         // Simulate multiple reconnect attempts by calling connectSse
         // with a failing health check
         when(() => mockHttp.get(
-              Uri.parse('http://localhost:8510/health'),
+              Uri.parse('http://localhost:8511/health'),
             )).thenThrow(Exception('down'));
 
         // Each connectSse() resets _reconnectAttempt to 0,

@@ -99,6 +99,8 @@ class AgentServer extends ChangeNotifier {
 
   // Chat message buffer for context
   final List<ChatMessage> _chatBuffer = [];
+  StreamStatus? _lastStatus;
+  final List<Map<String, dynamic>> _customCommands = [];
   static const _maxChatBuffer = 100;
 
   // SSE event stream for real-time updates
@@ -134,12 +136,14 @@ class AgentServer extends ChangeNotifier {
       final chatBufferListener = _platform!.chatStream.listen(_onChatMessage);
       _platformChatListener = _platform!.chatStream.listen(_emitChatEvent);
       _platformStatusListener = _platform!.statusStream.listen(_emitPlatformStatusEvent);
+      _platform!.fetchStatus().then((s) {
+        _lastStatus = s;
+        _emitPlatformStatusEvent(s);
+      });
       final twitch = _platform as TwitchPlatform?;
       if (twitch != null) {
         _platformEventListener = twitch.eventStream.listen(_emitChannelEvent);
       }
-      // Emit initial platform status for any connected SSE clients
-      _platform!.fetchStatus().then(_emitPlatformStatusEvent);
     }
   }
 
@@ -170,6 +174,7 @@ class AgentServer extends ChangeNotifier {
   }
 
   void _emitPlatformStatusEvent(StreamStatus status) {
+    _lastStatus = status;
     _emitSseEvent('platform_status', {
       'live': status.live,
       'viewers': status.viewers,
@@ -499,6 +504,116 @@ class AgentServer extends ChangeNotifier {
       router.get('/health', (request) {
         return shelf.Response.ok(
           jsonEncode({'status': 'ok', 'obs_connected': _obs?.state.connected ?? false}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      });
+
+      // GET /stream/status — dashboard status card
+      router.get('/stream/status', (request) {
+        final s = _lastStatus;
+        return shelf.Response.ok(
+          jsonEncode({
+            'status': (s?.live ?? false) ? 'live' : 'offline',
+            'viewers': s?.viewers ?? 0,
+            'game': s?.game ?? '',
+            'title': s?.title ?? '',
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+      });
+
+      // GET /chat/recent?count=N — recent chat for the dashboard
+      router.get('/chat/recent', (request) {
+        final countStr = request.url.queryParameters['count'] ?? '30';
+        final count = int.tryParse(countStr) ?? 30;
+        final recent = _chatBuffer.reversed.take(count).toList();
+        return shelf.Response.ok(
+          jsonEncode({
+            'messages': [for (final m in recent.reversed) m.toJson()],
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+      });
+
+      // POST /chat/send — send a chat message
+      router.post('/chat/send', (request) async {
+        final body = jsonDecode(await request.readAsString()) as Map<String, dynamic>;
+        final message = body['message'] as String?;
+        if (message == null || message.isEmpty) {
+          return shelf.Response.badRequest(
+            body: jsonEncode({'error': 'Missing message'}),
+          );
+        }
+        final ok = await _platform?.sendMessage(message) ?? false;
+        return shelf.Response.ok(
+          jsonEncode({'success': ok}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      });
+
+      // ── Custom chat commands (in-memory; UI Settings tab manages them) ──
+      router.get('/command/list', (request) {
+        return shelf.Response.ok(
+          jsonEncode({
+            'commands': _customCommands.map((c) => {
+                  'name': c['name'],
+                  'response': c['response'],
+                  'enabled': c['enabled'],
+                }).toList(),
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+      });
+
+      router.post('/command/save', (request) async {
+        final body = jsonDecode(await request.readAsString()) as Map<String, dynamic>;
+        final name = body['name'] as String?;
+        final response = body['response'] as String?;
+        if (name == null || name.isEmpty || response == null || response.isEmpty) {
+          return shelf.Response.badRequest(
+            body: jsonEncode({'error': 'Missing name or response'}),
+          );
+        }
+        _customCommands.removeWhere((c) => c['name'] == name);
+        _customCommands.add({
+          'name': name,
+          'response': response,
+          'enabled': body['enabled'] ?? true,
+        });
+        return shelf.Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      });
+
+      router.post('/command/delete', (request) async {
+        final body = jsonDecode(await request.readAsString()) as Map<String, dynamic>;
+        final name = body['name'] as String?;
+        if (name == null) {
+          return shelf.Response.badRequest(body: jsonEncode({'error': 'Missing name'}));
+        }
+        _customCommands.removeWhere((c) => c['name'] == name);
+        return shelf.Response.ok(
+          jsonEncode({'success': true}),
+          headers: {'Content-Type': 'application/json'},
+        );
+      });
+
+      router.post('/command/run', (request) async {
+        final body = jsonDecode(await request.readAsString()) as Map<String, dynamic>;
+        final name = body['name'] as String?;
+        if (name == null) {
+          return shelf.Response.badRequest(body: jsonEncode({'error': 'Missing name'}));
+        }
+        final cmd = _customCommands.cast<Map<String, dynamic>?>().firstWhere(
+              (c) => c!['name'] == name,
+              orElse: () => null,
+            );
+        if (cmd != null && cmd['enabled'] == true && _platform?.connected == true) {
+          await _platform!.sendMessage(cmd['response'] as String);
+        }
+        return shelf.Response.ok(
+          jsonEncode({'success': true}),
           headers: {'Content-Type': 'application/json'},
         );
       });
