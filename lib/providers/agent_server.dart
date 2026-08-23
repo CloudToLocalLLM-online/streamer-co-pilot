@@ -8,8 +8,11 @@ import 'package:shelf_router/shelf_router.dart' as shelf_router;
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../providers/obs_controller.dart';
+import '../platforms/kick_platform.dart';
+import '../platforms/multi_platform_manager.dart';
 import '../platforms/stream_platform.dart';
 import '../platforms/twitch_platform.dart';
+import '../platforms/youtube_platform.dart';
 import '../models/chat_message.dart';
 import '../models/channel_event.dart';
 
@@ -125,6 +128,20 @@ class AgentServer extends ChangeNotifier {
     // Emit initial state for any connected SSE clients
     _emitObsStateEvent();
   }
+
+  void setMultiPlatform({
+    TwitchPlatform? twitch,
+    KickPlatform? kick,
+    YoutubePlatform? youtube,
+  }) {
+    final manager = createMultiPlatformManager(
+        twitch: twitch, kick: kick, youtube: youtube);
+    setPlatform(manager);
+    _multiManager = manager;
+  }
+
+  MultiPlatformManager? get multiManager => _multiManager;
+  MultiPlatformManager? _multiManager;
 
   void setPlatform(StreamPlatform? platform) {
     _platformStatusListener?.cancel();
@@ -462,12 +479,62 @@ class AgentServer extends ChangeNotifier {
         final ok = await _platform?.banUser(user) ?? false;
         return AgentCommandResult(success: ok, message: ok ? 'Banned $user' : 'Failed');
 
+      case 'connect_platform':
+        final platform = params['platform'] as String?;
+        final channel = params['channel'] as String?;
+        if (platform == null || channel == null) {
+          return const AgentCommandResult(
+              success: false, message: 'Missing platform or channel');
+        }
+        return await _connectPlatform(platform, channel);
+
+      case 'disconnect_platform':
+        final platform = params['platform'] as String?;
+        if (platform == null) {
+          return const AgentCommandResult(success: false, message: 'Missing platform');
+        }
+        _multiManager?.disconnectPlatform(_typeForName(platform));
+        return AgentCommandResult(success: true, message: 'Disconnected $platform');
+
       default:
         return AgentCommandResult(success: false, message: 'Unknown command: $command');
     }
   }
 
   // ── HTTP Server ──
+
+  Type _typeForName(String name) {
+    switch (name.toLowerCase()) {
+      case 'twitch':
+        return TwitchPlatform;
+      case 'kick':
+        return KickPlatform;
+      case 'youtube':
+        return YoutubePlatform;
+      default:
+        throw ArgumentError('Unknown platform: $name');
+    }
+  }
+
+  Future<AgentCommandResult> _connectPlatform(
+      String platform, String channel) async {
+    try {
+      final type = _typeForName(platform);
+      final ok = await _multiManager?.connectPlatform(
+            type,
+            PlatformCredentials(channelName: channel),
+          ) ??
+          false;
+      return AgentCommandResult(
+        success: ok,
+        message: ok ? 'Connected to $platform ($channel)' : 'Failed to connect $platform',
+      );
+    } on ArgumentError catch (e) {
+      return AgentCommandResult(success: false, message: e.message?.toString() ?? 'Bad platform');
+    } on UnsupportedError catch (e) {
+      return AgentCommandResult(success: false, message: e.message ?? 'Unsupported');
+    }
+  }
 
   Future<bool> start({int port = 8511}) async {
     _port = port;

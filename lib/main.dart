@@ -6,8 +6,10 @@ import 'theme/app_theme.dart';
 import 'providers/streamer_bot_provider.dart';
 import 'providers/obs_controller.dart';
 import 'providers/agent_server.dart';
-import 'platforms/twitch_platform.dart';
+import 'platforms/kick_platform.dart';
 import 'platforms/stream_platform.dart';
+import 'platforms/youtube_platform.dart';
+import 'platforms/twitch_platform.dart';
 import 'widgets/connection_indicator.dart';
 import 'widgets/error_banner.dart';
 import 'widgets/compact_overlay.dart';
@@ -70,6 +72,9 @@ void main() async {
           ChangeNotifierProvider(create: (_) => StreamerBotProvider()),
           ChangeNotifierProvider(create: (_) => ObsController()),
           ChangeNotifierProvider(create: (_) => TwitchPlatform()),
+          ChangeNotifierProvider<KickPlatform>(create: (_) => KickPlatform()),
+          ChangeNotifierProvider<YoutubePlatform>(
+              create: (_) => YoutubePlatform()),
           ChangeNotifierProvider(create: (_) {
             final agentServer = AgentServer();
             // Wired after build in _startServices
@@ -102,10 +107,13 @@ class _StreamerCoPilotAppState extends State<StreamerCoPilotApp> {
     // Wire providers together
     final obs = context.read<ObsController>();
     final twitch = context.read<TwitchPlatform>();
+    final kick = context.read<KickPlatform>();
+    final youtube = context.read<YoutubePlatform>();
     final agentServer = context.read<AgentServer>();
 
     agentServer.setObs(obs);
-    agentServer.setPlatform(twitch);
+    agentServer.setMultiPlatform(
+        twitch: twitch, kick: kick, youtube: youtube);
 
     // Start agent server
     agentServer.start(port: 8511);

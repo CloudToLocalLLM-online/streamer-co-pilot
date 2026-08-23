@@ -118,8 +118,8 @@ class _SettingsTabState extends State<SettingsTab> {
             ),
             items: const [
               DropdownMenuItem(value: 'Twitch', child: Text('Twitch')),
-              DropdownMenuItem(value: 'YouTube', child: Text('YouTube (coming soon)')),
-              DropdownMenuItem(value: 'Kick', child: Text('Kick (coming soon)')),
+              DropdownMenuItem(value: 'YouTube', child: Text('YouTube Live (beta)')),
+              DropdownMenuItem(value: 'Kick', child: Text('Kick (chat only)')),
             ],
             onChanged: (_) {},
           ),

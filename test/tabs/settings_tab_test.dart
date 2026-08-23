@@ -152,8 +152,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Twitch'), findsWidgets);
-      expect(find.text('YouTube (coming soon)'), findsOneWidget);
-      expect(find.text('Kick (coming soon)'), findsOneWidget);
+      expect(find.text('YouTube Live (beta)'), findsOneWidget);
+      expect(find.text('Kick (chat only)'), findsOneWidget);
     });
 
     testWidgets('Twitch Client ID/Secret fields exist', (tester) async {
