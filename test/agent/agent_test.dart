@@ -313,44 +313,214 @@ void main() {
   });
 
   group('DecisionLoop', () {
-    late AgentClient testClient;
-    late DecisionLoopConfig config;
-    late List<String> logMessages;
+      late MockHttpClient mockClient;
+      late AgentClient testClient;
+      late DecisionLoopConfig config;
+      late List<String> logMessages;
 
-    setUp(() {
-      testClient = AgentClient(baseUrl: 'http://localhost:8511', httpClient: MockHttpClient());
-      logMessages = [];
-      config = DecisionLoopConfig(
-        pollInterval: const Duration(milliseconds: 10),
-        rules: [],
-        onLog: (msg) => logMessages.add(msg),
-      );
+      // Helper to create a mock response
+      MockHttpResponse createMockResponse({int statusCode = 200, String body = ''}) {
+        final mock = MockHttpResponse();
+        when(() => mock.statusCode).thenReturn(statusCode);
+        when(() => mock.body).thenReturn(body);
+        return mock;
+      }
+
+      setUp(() {
+        mockClient = MockHttpClient();
+        testClient = AgentClient(baseUrl: 'http://localhost:8511', httpClient: mockClient);
+        logMessages = [];
+        config = DecisionLoopConfig(
+          pollInterval: const Duration(milliseconds: 10),
+          rules: [],
+          onLog: (msg) => logMessages.add(msg),
+        );
+      });
+
+      tearDown(() async {
+        await testClient.close();
+      });
+
+      test('starts and stops cleanly', () async {
+        final loop = DecisionLoop(client: testClient, config: config);
+        expect(loop.isRunning, false);
+        expect(loop.iteration, 0);
+
+        await loop.stop();
+        expect(loop.isRunning, false);
+      });
+
+      test('runOnce returns empty list when no rules', () async {
+        // Mock getState for runOnce (health check not called by runOnce)
+        final stateResponse = createMockResponse(body: jsonEncode({
+          'obs': {'connected': false, 'streaming': false},
+          'platform': {'connected': false},
+          'chat': {'total_messages': 0, 'recent': []},
+        }));
+
+        when(() => mockClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) async => stateResponse);
+
+        final loop = DecisionLoop(client: testClient, config: config);
+        final results = await loop.runOnce();
+
+        expect(results, isEmpty);
+        expect(loop.iteration, 1);
+      });
+
+      test('runOnce executes rule when condition met', () async {
+        final stateResponse = createMockResponse(body: jsonEncode({
+          'obs': {
+            'connected': true,
+            'current_scene': 'Starting',
+            'scenes': ['Starting', 'Gaming'],
+            'streaming': false,
+            'recording': false,
+            'stream_duration_sec': 0,
+            'sources': [],
+            'audio_channels': [],
+          },
+          'platform': {'connected': true},
+          'chat': {'total_messages': 0, 'recent': []},
+        }));
+
+        final commandResponse = createMockResponse(body: '{"success": true, "message": "Stream started"}');
+
+        when(() => mockClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) async => stateResponse);
+        when(() => mockClient.post(
+          any(),
+          headers: any(named: 'headers'),
+          body: any(named: 'body'),
+        )).thenAnswer((_) async => commandResponse);
+
+        final ruleConfig = DecisionLoopConfig(
+          pollInterval: const Duration(milliseconds: 10),
+          rules: [autoStartStreamRule()],
+          onLog: (msg) => logMessages.add(msg),
+        );
+
+        final loop = DecisionLoop(client: testClient, config: ruleConfig);
+        final results = await loop.runOnce();
+
+        expect(results.length, 1);
+        expect(results.first.ruleName, 'auto_start_stream');
+        expect(results.first.conditionMet, true);
+        expect(results.first.commandResult?.success, true);
+        expect(loop.iteration, 1);
+      });
+
+      test('runOnce does not execute rule when condition not met', () async {
+        final stateResponse = createMockResponse(body: jsonEncode({
+          'obs': {
+            'connected': false,
+            'current_scene': null,
+            'scenes': [],
+            'streaming': false,
+            'recording': false,
+            'stream_duration_sec': 0,
+            'sources': [],
+            'audio_channels': [],
+          },
+          'platform': {'connected': true},
+          'chat': {'total_messages': 0, 'recent': []},
+        }));
+
+        when(() => mockClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) async => stateResponse);
+
+        final ruleConfig = DecisionLoopConfig(
+          pollInterval: const Duration(milliseconds: 10),
+          rules: [autoStartStreamRule()],
+          onLog: (msg) => logMessages.add(msg),
+        );
+
+        final loop = DecisionLoop(client: testClient, config: ruleConfig);
+        final results = await loop.runOnce();
+
+        expect(results, isEmpty);
+        expect(loop.iteration, 1);
+      });
+
+      test('runOnce handles command failure gracefully', () async {
+        final stateResponse = createMockResponse(body: jsonEncode({
+          'obs': {
+            'connected': true,
+            'current_scene': 'Starting',
+            'scenes': ['Starting', 'Gaming'],
+            'streaming': false,
+            'recording': false,
+            'stream_duration_sec': 0,
+            'sources': [],
+            'audio_channels': [],
+          },
+          'platform': {'connected': true},
+          'chat': {'total_messages': 0, 'recent': []},
+        }));
+
+        final commandResponse = createMockResponse(statusCode: 500, body: 'Internal Server Error');
+
+        when(() => mockClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) async => stateResponse);
+        when(() => mockClient.post(
+          any(),
+          headers: any(named: 'headers'),
+          body: any(named: 'body'),
+        )).thenAnswer((_) async => commandResponse);
+
+        final ruleConfig = DecisionLoopConfig(
+          pollInterval: const Duration(milliseconds: 10),
+          rules: [autoStartStreamRule()],
+          onLog: (msg) => logMessages.add(msg),
+        );
+
+        final loop = DecisionLoop(client: testClient, config: ruleConfig);
+        final results = await loop.runOnce();
+
+        expect(results.length, 1);
+        expect(results.first.ruleName, 'auto_start_stream');
+        expect(results.first.conditionMet, true);
+        expect(results.first.commandResult, isNull);
+        expect(results.first.error, isNotNull);
+        expect(results.first.success, false);
+      });
+
+      test('shouldContinue stops loop when false', () async {
+            final stateResponse = createMockResponse(body: jsonEncode({
+              'obs': {'connected': false, 'streaming': false},
+              'platform': {'connected': false},
+              'chat': {'total_messages': 0, 'recent': []},
+            }));
+
+            when(() => mockClient.get(any(), headers: any(named: 'headers')))
+                .thenAnswer((_) async => stateResponse);
+
+            int continueCalls = 0;
+            final ruleConfig = DecisionLoopConfig(
+              pollInterval: const Duration(milliseconds: 10),
+              rules: [],
+              onLog: (msg) => logMessages.add(msg),
+              shouldContinue: (state) {
+                continueCalls++;
+                return continueCalls < 2; // Stop after 2 iterations
+              },
+            );
+
+            final loop = DecisionLoop(client: testClient, config: ruleConfig);
+
+            // Run first iteration - shouldContinue returns true, loop continues
+            final results1 = await loop.runOnce();
+            expect(results1, isEmpty);
+            expect(continueCalls, 1);
+
+            // Run second iteration - shouldContinue returns false, loop stops early
+            final results2 = await loop.runOnce();
+            expect(results2, isEmpty);
+            expect(continueCalls, 2);
+            // Note: runOnce() doesn't set _running = true (only start() does),
+            // so isRunning remains false. The shouldContinue callback still works.
+          });
     });
-
-    tearDown(() async {
-      await testClient.close();
-    });
-
-    test('starts and stops cleanly', () async {
-      // Mock health check
-      // We can't easily mock the internal http client, so this tests the structure
-
-      final loop = DecisionLoop(client: testClient, config: config);
-      expect(loop.isRunning, false);
-      expect(loop.iteration, 0);
-
-      // Can't easily test full start without mocking AgentClient internals
-      // but we verify the API shape
-      await loop.stop();
-      expect(loop.isRunning, false);
-    });
-
-    test('runOnce executes rules when condition met', () async {
-      // This test would need a mock AgentClient that returns a controlled state
-      // For now, verify the API compiles and types work
-      expect(true, true);
-    });
-  });
 
   group('Built-in DecisionRules', () {
     test('autoStartStreamRule condition matches when live + OBS ready + not streaming', () {

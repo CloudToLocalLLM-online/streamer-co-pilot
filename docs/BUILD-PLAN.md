@@ -77,10 +77,10 @@ Documented in `PLATFORM-INTEGRATION.md` as future work. The interface is ready â
 
 ## Phase 5: Agent Integration
 
-- [ ] Hermes skill for streamer-co-pilot
-- [ ] Decision loop: poll `/state`, decide, send `/command`
-- [ ] Event-driven mode (WebSocket instead of polling)
-- [ ] Alert overlay (donations, follows, subs)
+- [x] Hermes skill for streamer-co-pilot
+- [x] Decision loop: poll `/state`, decide, send `/command` (lib/agent/decision_loop.dart, lib/agent/agent_client.dart, lib/agent/agent_main.dart)
+- [x] Event-driven mode (WebSocket on server at `/ws`; SSE client in AgentClient)
+- [ ] Alert overlay (donations, follows, subs) â€” subs/resubs/raids via IRC USERNOTICE done; follows/donations need Helix EventSub
 
 ## Phase 6: Polish & Release
 
